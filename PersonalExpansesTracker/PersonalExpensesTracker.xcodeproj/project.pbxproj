@@ -7,13 +7,13 @@
 	objects = {
 
 /* Begin PBXFileReference section */
-		39C7C5B4301F681400E3FB62 /* PersonalExpansesTracker.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PersonalExpansesTracker.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		39C7C5B4301F681400E3FB62 /* PersonalExpensesTracker.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PersonalExpensesTracker.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		39C7C5B6301F681400E3FB62 /* PersonalExpansesTracker */ = {
+		39C7C5B6301F681400E3FB62 /* PersonalExpensesTracker */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
-			path = PersonalExpansesTracker;
+			path = PersonalExpensesTracker;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
@@ -32,7 +32,7 @@
 		39C7C5AB301F681400E3FB62 = {
 			isa = PBXGroup;
 			children = (
-				39C7C5B6301F681400E3FB62 /* PersonalExpansesTracker */,
+				39C7C5B6301F681400E3FB62 /* PersonalExpensesTracker */,
 				39C7C5B5301F681400E3FB62 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -40,7 +40,7 @@
 		39C7C5B5301F681400E3FB62 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				39C7C5B4301F681400E3FB62 /* PersonalExpansesTracker.app */,
+				39C7C5B4301F681400E3FB62 /* PersonalExpensesTracker.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -48,9 +48,9 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		39C7C5B3301F681400E3FB62 /* PersonalExpansesTracker */ = {
+		39C7C5B3301F681400E3FB62 /* PersonalExpensesTracker */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 39C7C5BF301F681500E3FB62 /* Build configuration list for PBXNativeTarget "PersonalExpansesTracker" */;
+			buildConfigurationList = 39C7C5BF301F681500E3FB62 /* Build configuration list for PBXNativeTarget "PersonalExpensesTracker" */;
 			buildPhases = (
 				39C7C5B0301F681400E3FB62 /* Sources */,
 				39C7C5B1301F681400E3FB62 /* Frameworks */,
@@ -61,13 +61,13 @@
 			dependencies = (
 			);
 			fileSystemSynchronizedGroups = (
-				39C7C5B6301F681400E3FB62 /* PersonalExpansesTracker */,
+				39C7C5B6301F681400E3FB62 /* PersonalExpensesTracker */,
 			);
-			name = PersonalExpansesTracker;
+			name = PersonalExpensesTracker;
 			packageProductDependencies = (
 			);
 			productName = PersonalExpansesTracker;
-			productReference = 39C7C5B4301F681400E3FB62 /* PersonalExpansesTracker.app */;
+			productReference = 39C7C5B4301F681400E3FB62 /* PersonalExpensesTracker.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -85,7 +85,7 @@
 					};
 				};
 			};
-			buildConfigurationList = 39C7C5AF301F681400E3FB62 /* Build configuration list for PBXProject "PersonalExpansesTracker" */;
+			buildConfigurationList = 39C7C5AF301F681400E3FB62 /* Build configuration list for PBXProject "PersonalExpensesTracker" */;
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -99,7 +99,7 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				39C7C5B3301F681400E3FB62 /* PersonalExpansesTracker */,
+				39C7C5B3301F681400E3FB62 /* PersonalExpensesTracker */,
 			);
 		};
 /* End PBXProject section */
@@ -270,13 +270,14 @@
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2,7";
+				TARGETED_DEVICE_FAMILY = "1,2";
 				XROS_DEPLOYMENT_TARGET = 26.5;
 			};
 			name = Debug;
@@ -312,13 +313,14 @@
 				REGISTER_APP_GROUPS = YES;
 				SDKROOT = auto;
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
-				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator macosx xros xrsimulator";
+				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
+				SUPPORTS_MACCATALYST = NO;
 				SWIFT_APPROACHABLE_CONCURRENCY = YES;
 				SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor;
 				SWIFT_EMIT_LOC_STRINGS = YES;
 				SWIFT_UPCOMING_FEATURE_MEMBER_IMPORT_VISIBILITY = YES;
 				SWIFT_VERSION = 5.0;
-				TARGETED_DEVICE_FAMILY = "1,2,7";
+				TARGETED_DEVICE_FAMILY = "1,2";
 				XROS_DEPLOYMENT_TARGET = 26.5;
 			};
 			name = Release;
@@ -326,7 +328,7 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		39C7C5AF301F681400E3FB62 /* Build configuration list for PBXProject "PersonalExpansesTracker" */ = {
+		39C7C5AF301F681400E3FB62 /* Build configuration list for PBXProject "PersonalExpensesTracker" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				39C7C5BD301F681500E3FB62 /* Debug */,
@@ -335,7 +337,7 @@
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
 		};
-		39C7C5BF301F681500E3FB62 /* Build configuration list for PBXNativeTarget "PersonalExpansesTracker" */ = {
+		39C7C5BF301F681500E3FB62 /* Build configuration list for PBXNativeTarget "PersonalExpensesTracker" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				39C7C5C0301F681500E3FB62 /* Debug */,
