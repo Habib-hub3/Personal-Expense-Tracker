@@ -28,7 +28,7 @@ struct Expense{
     }
     
     // Convert Firestore Document into Swift Expense model
-    init(id: String, dictionary: [String: Any])
+    init?(id: String, dictionary: [String: Any])
     {
         guard let title = dictionary["title"] as? String,
               let amount = dictionary["amount"] as? Double,
@@ -41,7 +41,7 @@ struct Expense{
                 self.amount = amount
                 self.category = category
                 
-                if let timestemp = dictionary["date"] as? Timestamp {
+                if let timestamp = dictionary["date"] as? Timestamp {
                     self.date = timestamp.dateValue()
                 }else{
                     self.date = Date()

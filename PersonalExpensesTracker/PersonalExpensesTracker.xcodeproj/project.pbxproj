@@ -6,13 +6,32 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		39B60D19302CB8D000718C87 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 39B60D18302CB8D000718C87 /* FirebaseAuth */; };
+		39B60D1B302CB8D600718C87 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 39B60D1A302CB8D600718C87 /* FirebaseCore */; };
+		39B60D1D302CB8DD00718C87 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 39B60D1C302CB8DD00718C87 /* FirebaseFirestore */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		39C7C5B4301F681400E3FB62 /* PersonalExpensesTracker.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = PersonalExpensesTracker.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		39B60D5130307AFC00718C87 /* Exceptions for "PersonalExpensesTracker" folder in "PersonalExpensesTracker" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 39C7C5B3301F681400E3FB62 /* PersonalExpensesTracker */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		39C7C5B6301F681400E3FB62 /* PersonalExpensesTracker */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				39B60D5130307AFC00718C87 /* Exceptions for "PersonalExpensesTracker" folder in "PersonalExpensesTracker" target */,
+			);
 			path = PersonalExpensesTracker;
 			sourceTree = "<group>";
 		};
@@ -23,16 +42,27 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				39B60D1B302CB8D600718C87 /* FirebaseCore in Frameworks */,
+				39B60D19302CB8D000718C87 /* FirebaseAuth in Frameworks */,
+				39B60D1D302CB8DD00718C87 /* FirebaseFirestore in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		39B60D17302CB8D000718C87 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		39C7C5AB301F681400E3FB62 = {
 			isa = PBXGroup;
 			children = (
 				39C7C5B6301F681400E3FB62 /* PersonalExpensesTracker */,
+				39B60D17302CB8D000718C87 /* Frameworks */,
 				39C7C5B5301F681400E3FB62 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -65,6 +95,9 @@
 			);
 			name = PersonalExpensesTracker;
 			packageProductDependencies = (
+				39B60D18302CB8D000718C87 /* FirebaseAuth */,
+				39B60D1A302CB8D600718C87 /* FirebaseCore */,
+				39B60D1C302CB8DD00718C87 /* FirebaseFirestore */,
 			);
 			productName = PersonalExpansesTracker;
 			productReference = 39C7C5B4301F681400E3FB62 /* PersonalExpensesTracker.app */;
@@ -256,6 +289,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = PersonalExpensesTracker/Info.plist;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -303,6 +337,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = PersonalExpensesTracker/Info.plist;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphoneos*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSceneManifest_Generation[sdk=iphonesimulator*]" = YES;
 				"INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents[sdk=iphoneos*]" = YES;
@@ -369,6 +404,24 @@
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		39B60D18302CB8D000718C87 /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 39F01933302B584D00D946C8 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
+		39B60D1A302CB8D600718C87 /* FirebaseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 39F01933302B584D00D946C8 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCore;
+		};
+		39B60D1C302CB8DD00718C87 /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 39F01933302B584D00D946C8 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 39C7C5AC301F681400E3FB62 /* Project object */;
 }

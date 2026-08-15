@@ -12,6 +12,11 @@ import FirebaseFirestore
 class DataManager {
     static let shared = DataManager()
     private let db = Firestore.firestore()
+    private let dataError = NSError(
+        domain: "PersonalExpensesTracker.DataManager",
+        code: 1,
+        userInfo: [NSLocalizedDescriptionKey: "Unable to load the requested data."]
+    )
     
     private init() {}
     
@@ -31,15 +36,24 @@ class DataManager {
     
     func fetchUserProfile(completion: @escaping (Result<User, Error>) -> Void) {
         guard let uid = currentUserID else {
-            completion(nil)
+            completion(.failure(dataError))
             return }
         
         db.collection("users").document(uid).getDocument { snapshot, error in
-            guard let snapshot = snapshot, snapshot.exists let data = snapshot.data() else {
-                completion(nil)
+            if let error = error {
+                completion(.failure(error))
                 return
             }
-            completion(User(uid: uid, dictionary: data))
+            
+            guard let snapshot = snapshot,
+                  snapshot.exists,
+                  let data = snapshot.data(),
+                  let user = User(uid: uid, dictionary: data) else {
+                completion(.failure(self.dataError))
+                return
+            }
+            
+            completion(.success(user))
         }
     }
     
@@ -48,7 +62,7 @@ class DataManager {
     // CREATE
     func addExpense(_ expense: Expense, completion: @escaping (Bool) -> Void) {
         guard let uid = currentUserID else {
-            completion(nil)
+            completion(false)
             return
         }
         
@@ -60,14 +74,19 @@ class DataManager {
     // READ ALL
     func fetchExpenses(completion: @escaping (Result<[Expense], Error>) -> Void) {
         guard let uid = currentUserID else {
-            completion([])
+            completion(.failure(dataError))
             return }
         
         db.collection("users").document(uid).collection("expenses")
             .order(by: "date", descending: true)
             .getDocuments { snapshot, error in
-            guard let documents = snapshot?.documents, error == nil else {
-                completion([])
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
+            
+            guard let documents = snapshot?.documents else {
+                completion(.failure(self.dataError))
                 return
             }
                 
@@ -75,7 +94,7 @@ class DataManager {
                     doc -> Expense? in
                     return Expense(id: doc.documentID, dictionary: doc.data())
                 }
-                completion(expenses)
+                completion(.success(expenses))
         }
     }
     
