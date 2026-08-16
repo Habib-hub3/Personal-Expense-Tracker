@@ -27,8 +27,116 @@ class RegisterViewController: UIViewController {
     private func setupUI() {
         passwordTextField.isSecureTextEntry = true
         confirmPasswordTextField.isSecureTextEntry = true
+        setupResponsiveLayout()
     }
    
+    private func setupResponsiveLayout() {
+        guard let formView = usernameTextField.superview else { return }
+        let navigationBar = view.subviews.compactMap { $0 as? UINavigationBar }.first
+        let labels = Dictionary(uniqueKeysWithValues: formView.subviews.compactMap { subview -> (String, UILabel)? in
+            guard let label = subview as? UILabel, let text = label.text else { return nil }
+            return (text, label)
+        })
+        
+        let orderedRows: [(UILabel?, UITextField)] = [
+            (labels["Username:"], usernameTextField),
+            (labels["First Name:"], firstNameTextField),
+            (labels["Last Name:"], lastNameTextField),
+            (labels["Email:"], emailTextField),
+            (labels["Password:"], passwordTextField),
+            (labels["Confirm Password:"], confirmPasswordTextField)
+        ]
+        
+        ([formView, navigationBar, doneButton] + orderedRows.flatMap { [$0.0, $0.1] }).forEach {
+            $0?.translatesAutoresizingMaskIntoConstraints = false
+        }
+        
+        NSLayoutConstraint.deactivate(view.constraints.filter { constraint in
+            constraint.firstItem === formView || constraint.secondItem === formView ||
+            constraint.firstItem === navigationBar || constraint.secondItem === navigationBar
+        })
+        NSLayoutConstraint.deactivate(formView.constraints)
+        orderedRows.forEach { label, field in
+            if let label = label {
+                NSLayoutConstraint.deactivate(label.constraints)
+            }
+            NSLayoutConstraint.deactivate(field.constraints)
+        }
+        NSLayoutConstraint.deactivate(doneButton.constraints)
+        
+        let safeArea = view.safeAreaLayoutGuide
+        let isCompactWidth = view.bounds.width < 390
+        let labelColumnWidth: CGFloat = isCompactWidth ? 128 : 144
+        let formWidthConstraint = formView.widthAnchor.constraint(equalTo: safeArea.widthAnchor, multiplier: 0.9)
+        formWidthConstraint.priority = .defaultHigh
+        let centerYConstraint = formView.centerYAnchor.constraint(equalTo: safeArea.centerYAnchor, constant: 12)
+        centerYConstraint.priority = .defaultHigh
+        
+        var constraints: [NSLayoutConstraint] = [
+            formView.centerXAnchor.constraint(equalTo: safeArea.centerXAnchor),
+            formView.leadingAnchor.constraint(greaterThanOrEqualTo: safeArea.leadingAnchor, constant: 16),
+            formView.trailingAnchor.constraint(lessThanOrEqualTo: safeArea.trailingAnchor, constant: -16),
+            formWidthConstraint,
+            formView.widthAnchor.constraint(lessThanOrEqualToConstant: 560),
+            formView.bottomAnchor.constraint(lessThanOrEqualTo: safeArea.bottomAnchor, constant: -24),
+            centerYConstraint,
+            
+            doneButton.leadingAnchor.constraint(equalTo: formView.leadingAnchor),
+            doneButton.trailingAnchor.constraint(equalTo: formView.trailingAnchor),
+            doneButton.heightAnchor.constraint(equalToConstant: 44),
+            formView.bottomAnchor.constraint(equalTo: doneButton.bottomAnchor)
+        ]
+        
+        if let navigationBar = navigationBar {
+            constraints.append(contentsOf: [
+                navigationBar.topAnchor.constraint(equalTo: view.topAnchor),
+                navigationBar.leadingAnchor.constraint(equalTo: view.leadingAnchor),
+                navigationBar.trailingAnchor.constraint(equalTo: view.trailingAnchor),
+                navigationBar.bottomAnchor.constraint(equalTo: safeArea.topAnchor, constant: 54),
+                formView.topAnchor.constraint(greaterThanOrEqualTo: navigationBar.bottomAnchor, constant: 24)
+            ])
+        } else {
+            constraints.append(formView.topAnchor.constraint(greaterThanOrEqualTo: safeArea.topAnchor, constant: 32))
+        }
+        
+        var previousField: UITextField?
+        for (label, field) in orderedRows {
+            constraints.append(contentsOf: [
+                field.trailingAnchor.constraint(equalTo: formView.trailingAnchor),
+                field.heightAnchor.constraint(equalToConstant: 40)
+            ])
+            
+            if let label = label {
+                label.setContentCompressionResistancePriority(.required, for: .horizontal)
+                label.adjustsFontSizeToFitWidth = true
+                label.minimumScaleFactor = 0.85
+                label.numberOfLines = 1
+                constraints.append(contentsOf: [
+                    label.leadingAnchor.constraint(equalTo: formView.leadingAnchor),
+                    label.centerYAnchor.constraint(equalTo: field.centerYAnchor),
+                    label.widthAnchor.constraint(equalToConstant: labelColumnWidth),
+                    field.leadingAnchor.constraint(equalTo: label.trailingAnchor, constant: 8),
+                    field.widthAnchor.constraint(greaterThanOrEqualToConstant: 130)
+                ])
+            } else {
+                constraints.append(field.leadingAnchor.constraint(equalTo: formView.leadingAnchor))
+            }
+            
+            if let previousField = previousField {
+                constraints.append(field.topAnchor.constraint(equalTo: previousField.bottomAnchor, constant: 12))
+            } else {
+                constraints.append(field.topAnchor.constraint(equalTo: formView.topAnchor))
+            }
+            previousField = field
+        }
+        
+        if let lastField = previousField {
+            constraints.append(doneButton.topAnchor.constraint(equalTo: lastField.bottomAnchor, constant: 24))
+        }
+        
+        NSLayoutConstraint.activate(constraints)
+    }
+    
     // MARK: - IBActions
     @IBAction func doneButtonTapped(_ sender: UIButton) {
         guard let username = usernameTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines), !username.isEmpty,
@@ -48,20 +156,27 @@ class RegisterViewController: UIViewController {
         
         Auth.auth().createUser(withEmail: email, password: password) { [weak self] authResult, error in
             if let error = error {
-                print("Detailed Firebase Auth Error: \(error)")
-                self?.showAlert(title: "Registration Error", message: error.localizedDescription)
+                DispatchQueue.main.async {
+                    self?.showAlert(title: "Registration Error", message: error.localizedDescription)
+                }
                 return
             }
             
-            guard let uid = authResult?.user.uid else { return }
+            guard let authUser = authResult?.user else { return }
+            let uid = authUser.uid
+            let displayNameChangeRequest = authUser.createProfileChangeRequest()
+            displayNameChangeRequest.displayName = "\(firstName) \(lastName)"
+            displayNameChangeRequest.commitChanges()
             
-            let newUser = User(uid: uid, email: email, username: username)
+            let newUser = User(uid: uid, email: email, username: username, firstName: firstName, lastName: lastName)
             DataManager.shared.saveUserProfile(user: newUser) { success in
-                if success {
-                    self?.showRegistrationSuccessAlert()
-                } else {
-                    self?.showAlert(title: "Error", message: "User created, but failed to save profile data.")
+                if !success {
+                    print("User created, but failed to save profile data.")
                 }
+            }
+            
+            DispatchQueue.main.async {
+                self?.showRegistrationSuccessAlert()
             }
         }
     }
@@ -73,8 +188,8 @@ class RegisterViewController: UIViewController {
     // MARK: - Helper Methods
     private func showRegistrationSuccessAlert() {
         let alert = UIAlertController(
-            title: "Registration Successful",
-            message: "Your email has been successfully registered.",
+            title: "Account Created",
+            message: "Your account has been successfully registered. Press OK to return to Login and sign in with your new account.",
             preferredStyle: .alert
         )
         alert.addAction(UIAlertAction(title: "OK", style: .default) { [weak self] _ in

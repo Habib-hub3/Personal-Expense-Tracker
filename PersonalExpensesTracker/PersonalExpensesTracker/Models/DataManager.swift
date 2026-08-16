@@ -49,12 +49,33 @@ class DataManager {
                   snapshot.exists,
                   let data = snapshot.data(),
                   let user = User(uid: uid, dictionary: data) else {
-                completion(.failure(self.dataError))
+                let fallbackUser = self.authFallbackUser(uid: uid)
+                self.saveUserProfile(user: fallbackUser) { _ in }
+                completion(.success(fallbackUser))
                 return
             }
             
             completion(.success(user))
         }
+    }
+    
+    private func authFallbackUser(uid: String) -> User {
+        let authUser = Auth.auth().currentUser
+        let email = authUser?.email ?? ""
+        let displayName = authUser?.displayName?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        let nameParts = displayName.split(separator: " ", omittingEmptySubsequences: true).map(String.init)
+        let firstName = nameParts.first ?? ""
+        let lastName = nameParts.dropFirst().joined(separator: " ")
+        let username = displayName.isEmpty ? email.components(separatedBy: "@").first ?? "" : displayName
+        let fallbackFirstName = firstName.isEmpty ? username : firstName
+        
+        return User(
+            uid: uid,
+            email: email,
+            username: username,
+            firstName: fallbackFirstName,
+            lastName: lastName
+        )
     }
     
     // MARK: - Expense Operations

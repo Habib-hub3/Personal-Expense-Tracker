@@ -57,6 +57,7 @@
                                         <buttonConfiguration key="configuration" style="filled" title="LOG IN"/>
                                         <connections>
                                             <action selector="logInButtonTapped:" destination="ywf-BY-iZI" eventType="touchUpInside" id="C63-Qi-Yb3"/>
+                                            <segue destination="Kjd-kk-QSx" kind="presentation" identifier="loginToMainTabBar" modalPresentationStyle="fullScreen" id="z5q-RV-vGu"/>
                                         </connections>
                                     </button>
                                 </subviews>
@@ -302,7 +303,7 @@
                 <navigationController title="Settings" id="C8c-2j-DpL" sceneMemberID="viewController">
                     <tabBarItem key="tabBarItem" title="Settings" image="gearshape.fill" catalog="system" id="Tmo-iR-Mmz"/>
                     <navigationBar key="navigationBar" contentMode="scaleToFill" id="OG4-Ey-evO">
-                        <rect key="frame" x="0.0" y="16" width="393" height="54"/>
+                        <rect key="frame" x="0.0" y="59" width="393" height="54"/>
                         <autoresizingMask key="autoresizingMask"/>
                     </navigationBar>
                     <connections>
@@ -318,7 +319,7 @@
             <objects>
                 <tableViewController title="Settings View" id="aqA-W0-Oxk" customClass="SettingsTableViewController" customModule="PersonalExpensesTracker" customModuleProvider="target" sceneMemberID="viewController">
                     <tableView key="view" clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="static" style="plain" separatorStyle="default" rowHeight="-1" estimatedRowHeight="-1" sectionHeaderHeight="-1" estimatedSectionHeaderHeight="-1" sectionFooterHeight="-1" estimatedSectionFooterHeight="-1" id="dLq-of-OgG">
-                        <rect key="frame" x="0.0" y="0.0" width="393" height="710"/>
+                        <rect key="frame" x="0.0" y="0.0" width="393" height="769"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                         <sections>
@@ -551,13 +552,13 @@
         <!--Expenses View-->
         <scene sceneID="7qq-jF-5m6">
             <objects>
-                <tableViewController title="Expenses View" id="3Ja-UQ-Bp1" sceneMemberID="viewController">
+                <tableViewController title="Expenses View" id="3Ja-UQ-Bp1" customClass="ExpensesTableViewController" customModule="PersonalExpensesTracker" customModuleProvider="target" sceneMemberID="viewController">
                     <tableView key="view" clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="prototypes" style="plain" separatorStyle="default" rowHeight="-1" estimatedRowHeight="-1" sectionHeaderHeight="-1" estimatedSectionHeaderHeight="-1" sectionFooterHeight="-1" estimatedSectionFooterHeight="-1" id="sFG-t6-qmM">
-                        <rect key="frame" x="0.0" y="0.0" width="393" height="710"/>
+                        <rect key="frame" x="0.0" y="0.0" width="393" height="769"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                         <prototypes>
-                            <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" preservesSuperviewLayoutMargins="YES" selectionStyle="default" indentationWidth="10" reuseIdentifier="Filter" rowHeight="75" id="KpJ-Ds-lwN">
+                            <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" preservesSuperviewLayoutMargins="YES" selectionStyle="default" indentationWidth="10" reuseIdentifier="Filter" rowHeight="75" id="KpJ-Ds-lwN" customClass="ExpenseTableViewCell" customModule="PersonalExpensesTracker" customModuleProvider="target">
                                 <rect key="frame" x="0.0" y="50" width="393" height="75"/>
                                 <autoresizingMask key="autoresizingMask"/>
                                 <tableViewCellContentView key="contentView" opaque="NO" clipsSubviews="YES" multipleTouchEnabled="YES" contentMode="center" preservesSuperviewLayoutMargins="YES" insetsLayoutMarginsFromSafeArea="NO" tableViewCell="KpJ-Ds-lwN" id="6ds-Ya-crM">
@@ -649,9 +650,9 @@
         <!--Expenses Form View-->
         <scene sceneID="VeL-ze-AAU">
             <objects>
-                <tableViewController title="Expenses Form View" id="pPC-jW-W8Z" sceneMemberID="viewController">
+                <tableViewController title="Expenses Form View" id="pPC-jW-W8Z" customClass="ExpensesFormTableViewController" customModule="PersonalExpensesTracker" customModuleProvider="target" sceneMemberID="viewController">
                     <tableView key="view" clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="static" style="plain" separatorStyle="default" rowHeight="-1" estimatedRowHeight="-1" sectionHeaderHeight="-1" estimatedSectionHeaderHeight="-1" sectionFooterHeight="-1" estimatedSectionFooterHeight="-1" id="1pC-bc-jVt">
-                        <rect key="frame" x="0.0" y="0.0" width="393" height="710"/>
+                        <rect key="frame" x="0.0" y="0.0" width="393" height="769"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                         <sections>
@@ -800,7 +801,7 @@
                 <navigationController id="jDo-GY-Qsd" sceneMemberID="viewController">
                     <tabBarItem key="tabBarItem" title="Expenses" image="list.bullet" catalog="system" id="ufl-Ea-4QQ"/>
                     <navigationBar key="navigationBar" contentMode="scaleToFill" id="BEA-DP-9dI">
-                        <rect key="frame" x="0.0" y="16" width="393" height="54"/>
+                        <rect key="frame" x="0.0" y="59" width="393" height="54"/>
                         <autoresizingMask key="autoresizingMask"/>
                     </navigationBar>
                     <connections>
@@ -817,7 +818,7 @@
                 <navigationController id="JQk-pa-EWI" sceneMemberID="viewController">
                     <tabBarItem key="tabBarItem" title="Summary" image="chart.pie.fill" catalog="system" id="LDN-e5-6tN"/>
                     <navigationBar key="navigationBar" contentMode="scaleToFill" id="JXq-zW-ysi">
-                        <rect key="frame" x="0.0" y="16" width="393" height="54"/>
+                        <rect key="frame" x="0.0" y="59" width="393" height="54"/>
                         <autoresizingMask key="autoresizingMask"/>
                     </navigationBar>
                     <connections>
@@ -831,13 +832,13 @@
         <!--Summery View-->
         <scene sceneID="6K5-gw-uSw">
             <objects>
-                <viewController title="Summery View" id="Q9a-v1-aOT" sceneMemberID="viewController">
+                <viewController title="Summery View" id="Q9a-v1-aOT" customClass="SummaryViewController" customModule="PersonalExpensesTracker" customModuleProvider="target" sceneMemberID="viewController">
                     <view key="view" contentMode="scaleToFill" id="Kk0-oN-eO8">
-                        <rect key="frame" x="0.0" y="0.0" width="393" height="710"/>
+                        <rect key="frame" x="0.0" y="0.0" width="393" height="769"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
                             <view contentMode="scaleToFill" translatesAutoresizingMaskIntoConstraints="NO" id="X8I-bN-o26">
-                                <rect key="frame" x="16" y="117" width="361" height="114"/>
+                                <rect key="frame" x="16" y="160" width="361" height="114"/>
                                 <subviews>
                                     <label opaque="NO" userInteractionEnabled="NO" contentMode="left" horizontalHuggingPriority="251" verticalHuggingPriority="251" text="Total Money" textAlignment="natural" lineBreakMode="tailTruncation" baselineAdjustment="alignBaselines" adjustsFontSizeToFit="NO" translatesAutoresizingMaskIntoConstraints="NO" id="NTk-8M-8FQ">
                                         <rect key="frame" x="90.666666666666686" y="55" width="180" height="39"/>
@@ -862,7 +863,7 @@
                                 </constraints>
                             </view>
                             <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="fte-Sa-KPn">
-                                <rect key="frame" x="16" y="70" width="171" height="39"/>
+                                <rect key="frame" x="16" y="113" width="171" height="39"/>
                                 <constraints>
                                     <constraint firstAttribute="width" secondItem="fte-Sa-KPn" secondAttribute="height" multiplier="57:13" id="Gso-i8-UWV"/>
                                 </constraints>
@@ -870,7 +871,7 @@
                                 <buttonConfiguration key="configuration" style="gray" title="OVERALL"/>
                             </button>
                             <button opaque="NO" contentMode="scaleToFill" contentHorizontalAlignment="center" contentVerticalAlignment="center" buttonType="system" lineBreakMode="middleTruncation" translatesAutoresizingMaskIntoConstraints="NO" id="ZNF-HP-dFU">
-                                <rect key="frame" x="208" y="70" width="169" height="39"/>
+                                <rect key="frame" x="208" y="113" width="169" height="39"/>
                                 <constraints>
                                     <constraint firstAttribute="width" secondItem="ZNF-HP-dFU" secondAttribute="height" multiplier="13:3" id="pYe-E4-R4f"/>
                                 </constraints>
@@ -878,7 +879,7 @@
                                 <buttonConfiguration key="configuration" style="gray" title="THIS MONTH"/>
                             </button>
                             <tableView clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="prototypes" style="plain" separatorStyle="default" rowHeight="-1" estimatedRowHeight="-1" sectionHeaderHeight="-1" estimatedSectionHeaderHeight="-1" sectionFooterHeight="-1" estimatedSectionFooterHeight="-1" translatesAutoresizingMaskIntoConstraints="NO" id="fw9-ID-y79">
-                                <rect key="frame" x="16" y="239" width="361" height="380"/>
+                                <rect key="frame" x="16" y="282" width="361" height="396"/>
                                 <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                                 <prototypes>
                                     <tableViewCell clipsSubviews="YES" contentMode="scaleToFill" insetsLayoutMarginsFromSafeArea="NO" selectionStyle="blue" hidesAccessoryWhenEditing="NO" indentationLevel="1" indentationWidth="0.0" reuseIdentifier="Category List Cell" rowHeight="130" id="ixU-et-4xP">
@@ -964,7 +965,7 @@
                 <navigationController id="JJA-yE-y4O" sceneMemberID="viewController">
                     <tabBarItem key="tabBarItem" title="Add(+)" image="plus.app.fill" catalog="system" id="Fuv-wm-vmQ"/>
                     <navigationBar key="navigationBar" contentMode="scaleToFill" id="nRh-SU-Yky">
-                        <rect key="frame" x="0.0" y="16" width="393" height="54"/>
+                        <rect key="frame" x="0.0" y="59" width="393" height="54"/>
                         <autoresizingMask key="autoresizingMask"/>
                     </navigationBar>
                     <connections>
@@ -1001,9 +1002,9 @@
         <!--Add View-->
         <scene sceneID="nWG-pc-x3e">
             <objects>
-                <tableViewController title="Add View" id="uAB-Nd-5b6" sceneMemberID="viewController">
+                <tableViewController title="Add View" id="uAB-Nd-5b6" customClass="AddTableViewController" customModule="PersonalExpensesTracker" customModuleProvider="target" sceneMemberID="viewController">
                     <tableView key="view" clipsSubviews="YES" contentMode="scaleToFill" alwaysBounceVertical="YES" dataMode="static" style="plain" separatorStyle="default" rowHeight="-1" estimatedRowHeight="-1" sectionHeaderHeight="-1" estimatedSectionHeaderHeight="-1" sectionFooterHeight="-1" estimatedSectionFooterHeight="-1" id="FZO-GO-8JV">
-                        <rect key="frame" x="0.0" y="0.0" width="393" height="710"/>
+                        <rect key="frame" x="0.0" y="0.0" width="393" height="769"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <color key="backgroundColor" systemColor="systemBackgroundColor"/>
                         <sections>

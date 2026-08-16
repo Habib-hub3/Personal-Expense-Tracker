@@ -2,26 +2,26 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
-	<key>UIApplicationSceneManifest</key>
-	<dict>
-		<key>UIApplicationSupportsMultipleScenes</key>
-		<false/>
-		<key>UISceneConfigurations</key>
-		<dict>
-			<key>Application Session Role</key>
-			<array>
-				<dict>
-					<key>UISceneClassName</key>
-					<string></string>
-					<key>UISceneConfigurationName</key>
-					<string></string>
-					<key>UISceneDelegateClassName</key>
-					<string>$(PRODUCT_MODULENAME).SceneDelegate</string>
-					<key>UISceneStoryboardFile</key>
-					<string>PersonalExpensesTracker</string>
-				</dict>
-			</array>
-		</dict>
-	</dict>
+    <key>NSCameraUsageDescription</key>
+    <string>This app uses the camera so you can take a profile photo.</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>This app uses your photo library so you can choose a profile photo.</string>
+    <key>UIApplicationSceneManifest</key>
+    <dict>
+        <key>UIApplicationSupportsMultipleScenes</key>
+        <false/>
+        <key>UISceneConfigurations</key>
+        <dict>
+            <key>UIWindowSceneSessionRoleApplication</key>
+            <array>
+                <dict>
+                    <key>UISceneConfigurationName</key>
+                    <string>Default Configuration</string>
+                    <key>UISceneDelegateClassName</key>
+                    <string>$(PRODUCT_MODULE_NAME).SceneDelegate</string>
+                </dict>
+            </array>
+        </dict>
+    </dict>
 </dict>
 </plist>

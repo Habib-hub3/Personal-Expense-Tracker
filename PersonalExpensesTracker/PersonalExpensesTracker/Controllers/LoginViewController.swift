@@ -25,6 +25,102 @@ class LoginViewController: UIViewController {
     
     private func setupUI() {
         passwordTextField.isSecureTextEntry = true
+        [emailTextField, passwordTextField].forEach { textField in
+            textField?.borderStyle = .roundedRect
+            textField?.font = .systemFont(ofSize: 17)
+            textField?.autocorrectionType = .no
+        }
+        logInButton.layer.cornerRadius = 8
+        signUpButton.titleLabel?.adjustsFontSizeToFitWidth = true
+        signUpButton.titleLabel?.minimumScaleFactor = 0.8
+        setupResponsiveLayout()
+    }
+    
+    private func setupResponsiveLayout() {
+        guard let formView = emailTextField.superview,
+              let logoImageView = view.subviews.compactMap({ $0 as? UIImageView }).first else { return }
+        
+        [formView, logoImageView, emailTextField, passwordTextField, logInButton, signUpButton].forEach {
+            $0?.translatesAutoresizingMaskIntoConstraints = false
+        }
+        
+        let signUpLabel = formView.subviews.compactMap { $0 as? UILabel }.first
+        signUpLabel?.translatesAutoresizingMaskIntoConstraints = false
+        
+        NSLayoutConstraint.deactivate(view.constraints.filter { constraint in
+            constraint.firstItem === formView || constraint.secondItem === formView ||
+            constraint.firstItem === logoImageView || constraint.secondItem === logoImageView
+        })
+        NSLayoutConstraint.deactivate(formView.constraints)
+        [emailTextField, passwordTextField, logInButton, signUpButton, signUpLabel].forEach {
+            if let view = $0 {
+                NSLayoutConstraint.deactivate(view.constraints)
+            }
+        }
+        
+        let safeArea = view.safeAreaLayoutGuide
+        let contentGuide = UILayoutGuide()
+        view.addLayoutGuide(contentGuide)
+        
+        let logoWidthConstraint = logoImageView.widthAnchor.constraint(equalToConstant: 220)
+        logoWidthConstraint.priority = .defaultHigh
+        let formWidthConstraint = formView.widthAnchor.constraint(equalTo: contentGuide.widthAnchor)
+        formWidthConstraint.priority = .defaultHigh
+        
+        var constraints: [NSLayoutConstraint] = [
+            contentGuide.centerYAnchor.constraint(equalTo: safeArea.centerYAnchor, constant: -24),
+            contentGuide.topAnchor.constraint(greaterThanOrEqualTo: safeArea.topAnchor, constant: 32),
+            contentGuide.bottomAnchor.constraint(lessThanOrEqualTo: safeArea.bottomAnchor, constant: -32),
+            contentGuide.leadingAnchor.constraint(equalTo: safeArea.leadingAnchor, constant: 24),
+            contentGuide.trailingAnchor.constraint(equalTo: safeArea.trailingAnchor, constant: -24),
+            
+            logoImageView.topAnchor.constraint(equalTo: contentGuide.topAnchor),
+            logoImageView.centerXAnchor.constraint(equalTo: contentGuide.centerXAnchor),
+            logoWidthConstraint,
+            logoImageView.widthAnchor.constraint(lessThanOrEqualTo: contentGuide.widthAnchor, multiplier: 0.5),
+            logoImageView.heightAnchor.constraint(equalTo: logoImageView.widthAnchor),
+            
+            formView.topAnchor.constraint(equalTo: logoImageView.bottomAnchor, constant: 28),
+            formView.centerXAnchor.constraint(equalTo: contentGuide.centerXAnchor),
+            formView.leadingAnchor.constraint(greaterThanOrEqualTo: contentGuide.leadingAnchor),
+            formView.trailingAnchor.constraint(lessThanOrEqualTo: contentGuide.trailingAnchor),
+            formWidthConstraint,
+            formView.widthAnchor.constraint(lessThanOrEqualToConstant: 460),
+            formView.bottomAnchor.constraint(equalTo: contentGuide.bottomAnchor),
+            
+            emailTextField.topAnchor.constraint(equalTo: formView.topAnchor),
+            emailTextField.leadingAnchor.constraint(equalTo: formView.leadingAnchor),
+            emailTextField.trailingAnchor.constraint(equalTo: formView.trailingAnchor),
+            emailTextField.heightAnchor.constraint(equalToConstant: 44),
+            
+            passwordTextField.topAnchor.constraint(equalTo: emailTextField.bottomAnchor, constant: 12),
+            passwordTextField.leadingAnchor.constraint(equalTo: formView.leadingAnchor),
+            passwordTextField.trailingAnchor.constraint(equalTo: formView.trailingAnchor),
+            passwordTextField.heightAnchor.constraint(equalToConstant: 44),
+            
+            logInButton.topAnchor.constraint(equalTo: passwordTextField.bottomAnchor, constant: 16),
+            logInButton.leadingAnchor.constraint(equalTo: formView.leadingAnchor),
+            logInButton.trailingAnchor.constraint(equalTo: formView.trailingAnchor),
+            logInButton.heightAnchor.constraint(equalToConstant: 44),
+            
+            signUpButton.trailingAnchor.constraint(lessThanOrEqualTo: formView.trailingAnchor),
+            signUpButton.centerYAnchor.constraint(equalTo: signUpLabel?.centerYAnchor ?? formView.bottomAnchor),
+            formView.bottomAnchor.constraint(equalTo: signUpButton.bottomAnchor, constant: 12)
+        ]
+        
+        if let signUpLabel = signUpLabel {
+            constraints.append(contentsOf: [
+                signUpLabel.topAnchor.constraint(equalTo: logInButton.bottomAnchor, constant: 16),
+                signUpLabel.leadingAnchor.constraint(greaterThanOrEqualTo: formView.leadingAnchor),
+                signUpButton.leadingAnchor.constraint(equalTo: signUpLabel.trailingAnchor, constant: 8),
+                signUpButton.firstBaselineAnchor.constraint(equalTo: signUpLabel.firstBaselineAnchor),
+                signUpLabel.centerXAnchor.constraint(equalTo: formView.centerXAnchor, constant: -42)
+            ])
+        } else {
+            constraints.append(signUpButton.topAnchor.constraint(equalTo: logInButton.bottomAnchor, constant: 16))
+        }
+        
+        NSLayoutConstraint.activate(constraints)
     }
     
     //MARK: - IBActions
@@ -37,15 +133,15 @@ class LoginViewController: UIViewController {
             return
         }
         
-        //Firebase Authintication Sign In
-        Auth.auth().signIn(withEmail: email, password: password){ [weak self] authResult, error in
-            if let error = error{
-                self?.showAlert(title: "Login Failed", message: error.localizedDescription)
-                return
+        Auth.auth().signIn(withEmail: email, password: password) { [weak self] _, error in
+            DispatchQueue.main.async {
+                if let error = error {
+                    self?.showAlert(title: "Login Failed", message: self?.loginErrorMessage(from: error) ?? error.localizedDescription)
+                    return
+                }
+                
+                self?.navigateToMainApp()
             }
-            
-            // Navigate to Main Tab Bar Controller upon successful login
-            self?.navigateToMainApp()
         }
         
     }
@@ -54,11 +150,29 @@ class LoginViewController: UIViewController {
         //Navigate to RegisterViewController is handled via Storyboard Segue
     }
     
+    override func shouldPerformSegue(withIdentifier identifier: String, sender: Any?) -> Bool {
+        if identifier == "loginToMainTabBar" {
+            return shouldPerformLoginSegue
+        }
+        return true
+    }
+    
+    override func prepare(for segue: UIStoryboardSegue, sender: Any?) {
+        if segue.identifier == "loginToMainTabBar",
+           let tabBarVC = segue.destination as? UITabBarController {
+            tabBarVC.selectedIndex = 0
+        }
+    }
+    
     private func navigateToMainApp() {
-        guard let tabBarVC = storyboard?.instantiateViewController(withIdentifier: "MainTabBarController") as? UITabBarController else { return }
-        tabBarVC.selectedIndex = 0
-        tabBarVC.modalPresentationStyle = .fullScreen
-        present(tabBarVC, animated: true)
+        shouldPerformLoginSegue = true
+        performSegue(withIdentifier: "loginToMainTabBar", sender: self)
+        shouldPerformLoginSegue = false
+    }
+    
+    private func loginErrorMessage(from error: Error) -> String {
+        let nsError = error as NSError
+        return "\(error.localizedDescription)\n\nFirebase error code: \(nsError.code)"
     }
     
     private func showAlert(title: String, message: String) {
