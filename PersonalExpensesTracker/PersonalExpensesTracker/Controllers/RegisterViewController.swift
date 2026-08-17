@@ -154,31 +154,14 @@ class RegisterViewController: UIViewController {
             return
         }
         
-        Auth.auth().createUser(withEmail: email, password: password) { [weak self] authResult, error in
-            if let error = error {
-                DispatchQueue.main.async {
-                    self?.showAlert(title: "Registration Error", message: error.localizedDescription)
-                }
-                return
-            }
-            
-            guard let authUser = authResult?.user else { return }
-            let uid = authUser.uid
-            let displayNameChangeRequest = authUser.createProfileChangeRequest()
-            displayNameChangeRequest.displayName = "\(firstName) \(lastName)"
-            displayNameChangeRequest.commitChanges()
-            
-            let newUser = User(uid: uid, email: email, username: username, firstName: firstName, lastName: lastName)
-            DataManager.shared.saveUserProfile(user: newUser) { success in
-                if !success {
-                    print("User created, but failed to save profile data.")
-                }
-            }
-            
-            DispatchQueue.main.async {
-                self?.showRegistrationSuccessAlert()
-            }
-        }
+        doneButton.isEnabled = false
+        createAccount(
+            username: username,
+            firstName: firstName,
+            lastName: lastName,
+            email: email,
+            password: password
+        )
     }
 
     @IBAction func backButtonTapped(_ sender: UIBarButtonItem) {
@@ -186,6 +169,103 @@ class RegisterViewController: UIViewController {
     }
 
     // MARK: - Helper Methods
+    private func createAccount(username: String, firstName: String, lastName: String, email: String, password: String) {
+        Auth.auth().createUser(withEmail: email, password: password) { [weak self] authResult, error in
+            if let error = error {
+                DispatchQueue.main.async {
+                    self?.doneButton.isEnabled = true
+                    self?.showAlert(title: "Registration Error", message: error.localizedDescription)
+                }
+                return
+            }
+            
+            guard let authUser = authResult?.user else {
+                DispatchQueue.main.async {
+                    self?.doneButton.isEnabled = true
+                    self?.showAlert(title: "Registration Error", message: "Unable to create the account.")
+                }
+                return
+            }
+            
+            let uid = authUser.uid
+            let displayNameChangeRequest = authUser.createProfileChangeRequest()
+            displayNameChangeRequest.displayName = "\(firstName) \(lastName)"
+            displayNameChangeRequest.commitChanges()
+            
+            DataManager.shared.reserveUsername(username, uid: uid, email: email) { [weak self] result in
+                switch result {
+                case .success:
+                    let newUser = User(uid: uid, email: email, username: username, firstName: firstName, lastName: lastName)
+                    DataManager.shared.saveUserProfile(user: newUser) { success in
+                        if !success {
+                            print("User created, but failed to save profile data.")
+                        }
+                        
+                        DispatchQueue.main.async {
+                            self?.showRegistrationSuccessAlert()
+                        }
+                    }
+                case .failure(let error):
+                    authUser.delete()
+                    DispatchQueue.main.async {
+                        self?.doneButton.isEnabled = true
+                        self?.showAlert(
+                            title: self?.usernameReservationErrorTitle(for: error) ?? "Registration Error",
+                            message: self?.usernameReservationErrorMessage(for: error) ?? error.localizedDescription
+                        )
+                    }
+                }
+            }
+        }
+    }
+    
+    private func usernameReservationErrorTitle(for error: Error) -> String {
+        if isMissingFirestoreDatabaseError(error) {
+            return "Firestore Not Set Up"
+        }
+        if isPermissionError(error) {
+            return "Firestore Rules Blocked"
+        }
+        if isOfflineError(error) {
+            return "Internet Required"
+        }
+        if error.localizedDescription.localizedCaseInsensitiveContains("taken") {
+            return "Username Taken"
+        }
+        return "Registration Error"
+    }
+    
+    private func usernameReservationErrorMessage(for error: Error) -> String {
+        if isMissingFirestoreDatabaseError(error) {
+            return "Create the default Cloud Firestore database for this Firebase project, then try registering again. Expenses, settings sync, and Summary all need Firestore."
+        }
+        if isPermissionError(error) {
+            return "Update your Cloud Firestore rules to allow signed-in users to create username reservations and profile data."
+        }
+        if isOfflineError(error) {
+            return "Connect to the internet and try registering again so the app can reserve your unique username."
+        }
+        if error.localizedDescription.localizedCaseInsensitiveContains("taken") {
+            return "Please choose another username."
+        }
+        return error.localizedDescription
+    }
+    
+    private func isMissingFirestoreDatabaseError(_ error: Error) -> Bool {
+        let message = error.localizedDescription.lowercased()
+        return message.contains("database") && message.contains("does not exist")
+    }
+    
+    private func isPermissionError(_ error: Error) -> Bool {
+        let message = error.localizedDescription.lowercased()
+        return message.contains("permission") || message.contains("denied")
+    }
+    
+    private func isOfflineError(_ error: Error) -> Bool {
+        let message = error.localizedDescription.lowercased()
+        return message.contains("offline") || message.contains("network") || message.contains("internet")
+    }
+    
     private func showRegistrationSuccessAlert() {
         let alert = UIAlertController(
             title: "Account Created",
@@ -193,6 +273,7 @@ class RegisterViewController: UIViewController {
             preferredStyle: .alert
         )
         alert.addAction(UIAlertAction(title: "OK", style: .default) { [weak self] _ in
+            UserDefaults.standard.set(false, forKey: "isLoggedIn")
             try? Auth.auth().signOut()
             self?.returnToLoginPage()
         })

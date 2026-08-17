@@ -29,8 +29,9 @@ class SettingsTableViewController: UITableViewController, UIImagePickerControlle
     
     // MARK: - Properties
     private let currencies = ["USD ($)", "EUR (€)", "BHD (BD)", "GBP (£)"]
-    private let categories = ["Food", "Transport", "Entertainment", "General", "Shopping"]
+    private let categories = ExpenseCategory.names
     private var currentUserProfile: User?
+    private var sharedSettingsListener: ListenerRegistration?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -43,6 +44,10 @@ class SettingsTableViewController: UITableViewController, UIImagePickerControlle
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
         loadUserData()
+    }
+    
+    deinit {
+        sharedSettingsListener?.remove()
     }
     
     override func viewDidLayoutSubviews() {
@@ -223,6 +228,7 @@ class SettingsTableViewController: UITableViewController, UIImagePickerControlle
             currency in UIAction(title: currency) { [weak self] _ in
                 self?.currencyButton.setTitle(currency, for: .normal)
                 UserDefaults.standard.set(currency, forKey: "appCurrency")
+                self?.saveSharedSettings(["preferredCurrency": currency, "currency": currency])
             }
         }
         currencyButton?.menu = UIMenu(title: "Select Currency", children: currencyActions)
@@ -233,6 +239,7 @@ class SettingsTableViewController: UITableViewController, UIImagePickerControlle
             category in UIAction(title: category) { [weak self] _ in
                 self?.defaultCategoryButton.setTitle(category, for: .normal)
                 UserDefaults.standard.set(category, forKey: "defaultCategory")
+                self?.saveSharedSettings(["defaultCategory": category])
             }
         }
         defaultCategoryButton?.menu = UIMenu(title: "Select Category", children: categoryActions)
@@ -259,17 +266,19 @@ class SettingsTableViewController: UITableViewController, UIImagePickerControlle
                     let repairedProfile = self?.profileWithAuthFallbacks(profile, authUser: authUser) ?? profile
                     self?.currentUserProfile = repairedProfile
                     self?.applyProfile(repairedProfile)
+                    self?.loadSharedSettingsFromFirestore(email: authUser.email)
                     self?.saveMissingProfileFieldsIfNeeded(originalProfile: profile, repairedProfile: repairedProfile)
-                    if let profileImageBase64 = profile.profileImageBase64,
+                    if let profileImageBase64 = repairedProfile.profileImageBase64,
                        let image = self?.image(fromBase64: profileImageBase64) {
-                        self?.cacheProfileImageBase64(profileImageBase64, for: profile.uid)
+                        self?.cacheProfileImageBase64(profileImageBase64, for: repairedProfile.uid)
                         self?.setProfileImage(image)
                     } else {
-                        self?.loadCachedProfileImage(for: profile.uid)
+                        self?.loadCachedProfileImage(for: repairedProfile.uid)
                     }
                 case .failure:
                     self?.currentUserProfile = nil
                     self?.loadCachedProfileImage(for: authUser.uid)
+                    self?.loadSharedSettingsFromFirestore(email: authUser.email)
                 }
             }
         }
@@ -279,6 +288,7 @@ class SettingsTableViewController: UITableViewController, UIImagePickerControlle
         // Dark Mode
         let isDarkMode = UserDefaults.standard.bool(forKey: "isDarkMode")
         darkModeSwitch?.isOn = isDarkMode
+        applyDarkMode(isDarkMode)
         
         // Currency & category
         if let currency = UserDefaults.standard.string(forKey: "appCurrency"){
@@ -292,6 +302,10 @@ class SettingsTableViewController: UITableViewController, UIImagePickerControlle
         let isReminderOn = UserDefaults.standard.bool(forKey: "dailyReminders")
         dailyRemindersSwitch?.isOn = isReminderOn
         reminderDatePicker?.isEnabled = isReminderOn
+        
+        if let savedReminderDate = UserDefaults.standard.object(forKey: "reminderTime") as? Date {
+            reminderDatePicker?.date = savedReminderDate
+        }
     }
     
     // MARK: - Table View Layout
@@ -314,18 +328,14 @@ class SettingsTableViewController: UITableViewController, UIImagePickerControlle
     // MARK: - Actions
     
     @IBAction func darkModeToggled(_ sender: UISwitch) {
-        UserDefaults.standard.set(sender.isOn, forKey: "isDarkMode")
-        
-        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene {
-            windowScene.windows.forEach { window in
-                window.overrideUserInterfaceStyle = sender.isOn ? .dark : .light
-            }
-        }
+        AppearanceManager.applyDarkMode(sender.isOn)
+        saveSharedSettings(["isDarkMode": sender.isOn])
     }
     
     @IBAction func dailyRemindersToggled(_ sender: UISwitch) {
         reminderDatePicker?.isEnabled = sender.isOn
         UserDefaults.standard.set(sender.isOn, forKey: "dailyReminders")
+        saveSharedSettings(["dailyReminders": sender.isOn])
         
         if sender.isOn {
             requestNotificationPermission()
@@ -335,6 +345,13 @@ class SettingsTableViewController: UITableViewController, UIImagePickerControlle
     }
     
     @IBAction func reminderTimeChanged(_ sender: UIDatePicker) {
+        UserDefaults.standard.set(sender.date, forKey: "reminderTime")
+        let components = Calendar.current.dateComponents([.hour, .minute], from: sender.date)
+        saveSharedSettings([
+            "reminderHour": components.hour ?? 9,
+            "reminderMinute": components.minute ?? 0
+        ])
+        
         if dailyRemindersSwitch.isOn {
             scheduleDailyNotification(at: sender.date)
         }
@@ -360,6 +377,8 @@ class SettingsTableViewController: UITableViewController, UIImagePickerControlle
         alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
         alert.addAction(UIAlertAction(title: "Log Out", style: .destructive){ [weak self] _ in
             do {
+                SharedSettingsStore.stopListening()
+                UserDefaults.standard.set(false, forKey: "isLoggedIn")
                 try Auth.auth().signOut()
                 self?.redirectToLogin()
             } catch {
@@ -573,15 +592,303 @@ class SettingsTableViewController: UITableViewController, UIImagePickerControlle
                 )
             }
             
-            Firestore.firestore().collection("users").document(uid).setData([
-                "profileImageBase64": imageBase64
-            ], merge: true) { [weak self] error in
+            saveSharedProfileValues(["profileImageBase64": imageBase64], uid: uid, email: Auth.auth().currentUser?.email) { [weak self] error in
                 DispatchQueue.main.async {
                     if let error = error {
                         self?.showAlert(title: "Image Error", message: error.localizedDescription)
                     }
                 }
             }
+        }
+        
+        private func saveSharedSettings(_ values: [String: Any]) {
+            guard let authUser = Auth.auth().currentUser else { return }
+            saveSharedProfileValues(values, uid: authUser.uid, email: authUser.email) { [weak self] error in
+                DispatchQueue.main.async {
+                    if let error = error {
+                        self?.showAlert(title: "Settings Error", message: error.localizedDescription)
+                    }
+                }
+            }
+        }
+        
+        private func saveSharedProfileValues(
+            _ values: [String: Any],
+            uid: String,
+            email: String?,
+            completion: @escaping (Error?) -> Void
+        ) {
+            let db = Firestore.firestore()
+            let usersCollection = db.collection("users")
+            var syncedValues = values
+            let updatedAt = Timestamp(date: Date())
+            syncedValues["settingsUpdatedAt"] = updatedAt
+            if values["profileImageBase64"] != nil {
+                syncedValues["profileImageUpdatedAt"] = updatedAt
+            }
+            if let email = nonEmpty(email) {
+                syncedValues["email"] = email
+            }
+            
+            let initialSaveGroup = DispatchGroup()
+            var firstError: Error?
+            
+            initialSaveGroup.enter()
+            usersCollection.document(uid).setData(syncedValues, merge: true) { error in
+                if firstError == nil {
+                    firstError = error
+                }
+                initialSaveGroup.leave()
+            }
+            
+            if let email = nonEmpty(email) {
+                initialSaveGroup.enter()
+                accountSettingsDocument(for: email).setData(syncedValues, merge: true) { error in
+                    if firstError == nil {
+                        firstError = error
+                    }
+                    initialSaveGroup.leave()
+                }
+            }
+            
+            initialSaveGroup.notify(queue: .main) {
+                if let firstError = firstError {
+                    completion(firstError)
+                    return
+                }
+                
+                guard let email = self.nonEmpty(email) else {
+                    completion(nil)
+                    return
+                }
+                
+                self.profileDocumentIDsMatchingEmail(email, currentUID: uid) { documentIDs in
+                    let group = DispatchGroup()
+                    var firstError: Error?
+                    
+                    documentIDs.forEach { documentID in
+                        group.enter()
+                        usersCollection.document(documentID).setData(syncedValues, merge: true) { error in
+                            if firstError == nil {
+                                firstError = error
+                            }
+                            group.leave()
+                        }
+                    }
+                    
+                    group.notify(queue: .main) {
+                        completion(firstError)
+                    }
+                }
+            }
+        }
+        
+        private func loadSharedSettingsFromFirestore(email: String?) {
+            guard let uid = Auth.auth().currentUser?.uid,
+                  let email = nonEmpty(email) else { return }
+            
+            listenToAccountSettingsDocument(email: email)
+            
+            profileDocumentIDsMatchingEmail(email, currentUID: uid) { [weak self] documentIDs in
+                self?.fetchProfileDocumentData(documentIDs: documentIDs) { documents in
+                    guard let settings = documents.max(by: {
+                        self?.settingsSortValue($0) ?? 0 < self?.settingsSortValue($1) ?? 0
+                    }) else { return }
+                    
+                    DispatchQueue.main.async {
+                        self?.applySharedSettings(settings)
+                    }
+                }
+            }
+        }
+        
+        private func accountSettingsDocument(for email: String) -> DocumentReference {
+            Firestore.firestore()
+                .collection("accountSettings")
+                .document(accountSettingsDocumentID(for: email))
+        }
+        
+        private func listenToAccountSettingsDocument(email: String) {
+            sharedSettingsListener?.remove()
+            sharedSettingsListener = accountSettingsDocument(for: email)
+                .addSnapshotListener { [weak self] snapshot, _ in
+                    guard let data = snapshot?.data() else { return }
+                    DispatchQueue.main.async {
+                        self?.applySharedSettings(data)
+                    }
+                }
+        }
+        
+        private func fetchProfileDocumentData(
+            documentIDs: Set<String>,
+            completion: @escaping ([[String: Any]]) -> Void
+        ) {
+            let usersCollection = Firestore.firestore().collection("users")
+            let group = DispatchGroup()
+            let syncQueue = DispatchQueue(label: "profile-settings-documents")
+            var documents: [[String: Any]] = []
+            
+            documentIDs.forEach { documentID in
+                group.enter()
+                usersCollection.document(documentID).getDocument { snapshot, _ in
+                    if let data = snapshot?.data() {
+                        syncQueue.sync {
+                            documents.append(data)
+                        }
+                    }
+                    group.leave()
+                }
+            }
+            
+            group.notify(queue: .main) {
+                completion(documents)
+            }
+        }
+        
+        private func settingsScore(_ data: [String: Any]) -> Int {
+            var score = 0
+            if nonEmpty(data["preferredCurrency"] as? String) != nil || nonEmpty(data["currency"] as? String) != nil {
+                score += 1
+            }
+            if nonEmpty(data["defaultCategory"] as? String) != nil {
+                score += 1
+            }
+            if data["isDarkMode"] as? Bool != nil {
+                score += 1
+            }
+            if data["dailyReminders"] as? Bool != nil {
+                score += 1
+            }
+            if data["reminderHour"] as? Int != nil || data["reminderMinute"] as? Int != nil {
+                score += 1
+            }
+            if nonEmpty(data["profileImageBase64"] as? String) != nil {
+                score += 1
+            }
+            return score
+        }
+        
+        private func settingsSortValue(_ data: [String: Any]) -> Double {
+            if let updatedAt = data["settingsUpdatedAt"] as? Timestamp {
+                return updatedAt.dateValue().timeIntervalSince1970
+            }
+            if let updatedAt = data["settingsUpdatedAt"] as? Date {
+                return updatedAt.timeIntervalSince1970
+            }
+            if let updatedAt = data["settingsUpdatedAt"] as? TimeInterval {
+                return updatedAt
+            }
+            return Double(settingsScore(data))
+        }
+        
+        private func applySharedSettings(_ data: [String: Any]) {
+            if let profileImageBase64 = nonEmpty(data["profileImageBase64"] as? String),
+               let image = image(fromBase64: profileImageBase64) {
+                setProfileImage(image)
+                if let uid = Auth.auth().currentUser?.uid {
+                    cacheProfileImageBase64(profileImageBase64, for: uid)
+                }
+            }
+            
+            if let currency = nonEmpty(data["preferredCurrency"] as? String) ?? nonEmpty(data["currency"] as? String) {
+                currencyButton?.setTitle(currency, for: .normal)
+                UserDefaults.standard.set(currency, forKey: "appCurrency")
+            }
+            
+            if let category = nonEmpty(data["defaultCategory"] as? String) {
+                defaultCategoryButton?.setTitle(category, for: .normal)
+                UserDefaults.standard.set(category, forKey: "defaultCategory")
+            }
+            
+            if let isDarkMode = data["isDarkMode"] as? Bool {
+                darkModeSwitch?.isOn = isDarkMode
+                AppearanceManager.applyDarkMode(isDarkMode)
+            }
+            
+            if let dailyReminders = data["dailyReminders"] as? Bool {
+                dailyRemindersSwitch?.isOn = dailyReminders
+                reminderDatePicker?.isEnabled = dailyReminders
+                UserDefaults.standard.set(dailyReminders, forKey: "dailyReminders")
+            }
+            
+            if let reminderDate = reminderDate(from: data) {
+                reminderDatePicker?.date = reminderDate
+                UserDefaults.standard.set(reminderDate, forKey: "reminderTime")
+                if dailyRemindersSwitch.isOn {
+                    scheduleDailyNotification(at: reminderDate)
+                }
+            }
+        }
+        
+        private func reminderDate(from data: [String: Any]) -> Date? {
+            guard let hour = data["reminderHour"] as? Int,
+                  let minute = data["reminderMinute"] as? Int else { return nil }
+            return Calendar.current.date(bySettingHour: hour, minute: minute, second: 0, of: Date())
+        }
+        
+        private func applyDarkMode(_ isDarkMode: Bool) {
+            AppearanceManager.applyDarkMode(isDarkMode)
+        }
+        
+        private func profileDocumentIDsMatchingEmail(
+            _ email: String,
+            currentUID: String,
+            completion: @escaping (Set<String>) -> Void
+        ) {
+            let db = Firestore.firestore()
+            let usersCollection = db.collection("users")
+            let emailValues = Array(Set([email, email.lowercased()]))
+            let emailFields = ["email", "userEmail", "Email"]
+            let group = DispatchGroup()
+            let syncQueue = DispatchQueue(label: "profile-photo-document-ids")
+            var documentIDs = Set([currentUID])
+            
+            func addMatchingDocuments(from snapshot: QuerySnapshot?) {
+                snapshot?.documents.forEach { document in
+                    guard self.documentEmailMatches(document.data(), email: email) else { return }
+                    _ = syncQueue.sync {
+                        documentIDs.insert(document.documentID)
+                    }
+                }
+            }
+            
+            emailFields.forEach { field in
+                emailValues.forEach { emailValue in
+                    group.enter()
+                    usersCollection.whereField(field, isEqualTo: emailValue).getDocuments { snapshot, _ in
+                        addMatchingDocuments(from: snapshot)
+                        group.leave()
+                    }
+                }
+            }
+            
+            group.enter()
+            usersCollection.limit(to: 100).getDocuments { snapshot, _ in
+                addMatchingDocuments(from: snapshot)
+                group.leave()
+            }
+            
+            group.notify(queue: .main) {
+                completion(documentIDs)
+            }
+        }
+        
+        private func documentEmailMatches(_ data: [String: Any], email: String) -> Bool {
+            let normalizedEmail = email.lowercased()
+            let emailKeys = ["email", "userEmail", "Email"]
+            return emailKeys.contains { key in
+                guard let value = data[key] as? String else { return false }
+                return value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == normalizedEmail
+            }
+        }
+        
+        private func accountSettingsDocumentID(for email: String) -> String {
+            let normalizedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+            let data = Data(normalizedEmail.utf8)
+            return data.base64EncodedString()
+                .replacingOccurrences(of: "/", with: "_")
+                .replacingOccurrences(of: "+", with: "-")
+                .replacingOccurrences(of: "=", with: "")
         }
         
         private func resizedProfileImage(from image: UIImage) -> UIImage? {
@@ -708,15 +1015,22 @@ class SettingsTableViewController: UITableViewController, UIImagePickerControlle
         }
 
         private func performDataDeletion() {
-            guard let uid = Auth.auth().currentUser?.uid else { return }
-            let db = Firestore.firestore()
+            guard let expensesCollection = ExpenseStore.currentExpensesCollection else { return }
             
-            db.collection("users").document(uid).collection("expenses").getDocuments { [weak self] snapshot, error in
+            expensesCollection.getDocuments { [weak self] snapshot, error in
                 guard let documents = snapshot?.documents, error == nil else { return }
+                let group = DispatchGroup()
+                
                 for doc in documents {
-                    doc.reference.delete()
+                    group.enter()
+                    ExpenseStore.deleteExpenseEverywhere(id: doc.documentID) { _ in
+                        group.leave()
+                    }
                 }
-                self?.showAlert(title: "Success", message: "All expense data has been cleared.")
+                
+                group.notify(queue: .main) {
+                    self?.showAlert(title: "Success", message: "All expense data has been cleared.")
+                }
             }
         }
 
@@ -758,6 +1072,7 @@ class SettingsTableViewController: UITableViewController, UIImagePickerControlle
                 if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
                    let window = windowScene.windows.first {
                     window.rootViewController = loginVC
+                    AppearanceManager.applyLightMode()
                     window.makeKeyAndVisible()
                 } else {
                     present(loginVC, animated: true)

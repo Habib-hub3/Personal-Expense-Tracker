@@ -2,10 +2,14 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+    <key>CloudinaryCloudName</key>
+    <string>YOUR_CLOUDINARY_CLOUD_NAME</string>
+    <key>CloudinaryUploadPreset</key>
+    <string>YOUR_UNSIGNED_UPLOAD_PRESET</string>
     <key>NSCameraUsageDescription</key>
-    <string>This app uses the camera so you can take a profile photo.</string>
+    <string>This app uses the camera so you can take profile, receipt, or item photos.</string>
     <key>NSPhotoLibraryUsageDescription</key>
-    <string>This app uses your photo library so you can choose a profile photo.</string>
+    <string>This app uses your photo library so you can choose profile, receipt, or item photos.</string>
     <key>UIApplicationSceneManifest</key>
     <dict>
         <key>UIApplicationSupportsMultipleScenes</key>

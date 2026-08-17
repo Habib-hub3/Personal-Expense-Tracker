@@ -7,6 +7,7 @@
 
 import UIKit
 import FirebaseAuth
+import FirebaseFirestore
 
 class LoginViewController: UIViewController {
     
@@ -21,6 +22,11 @@ class LoginViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
+    }
+    
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+        AppearanceManager.applyLightMode()
     }
     
     private func setupUI() {
@@ -140,7 +146,7 @@ class LoginViewController: UIViewController {
                     return
                 }
                 
-                self?.navigateToMainApp()
+                self?.loadSharedSettingsThenNavigate(email: email)
             }
         }
         
@@ -161,13 +167,53 @@ class LoginViewController: UIViewController {
         if segue.identifier == "loginToMainTabBar",
            let tabBarVC = segue.destination as? UITabBarController {
             tabBarVC.selectedIndex = 0
+            tabBarVC.overrideUserInterfaceStyle = AppearanceManager.savedStyle
         }
     }
     
     private func navigateToMainApp() {
+        UserDefaults.standard.set(true, forKey: "isLoggedIn")
         shouldPerformLoginSegue = true
         performSegue(withIdentifier: "loginToMainTabBar", sender: self)
         shouldPerformLoginSegue = false
+        AppearanceManager.applySavedAppearance()
+        SharedSettingsStore.startListeningForCurrentUser()
+    }
+    
+    private func loadSharedSettingsThenNavigate(email: String) {
+        Firestore.firestore()
+            .collection("accountSettings")
+            .document(accountSettingsDocumentID(for: email))
+            .getDocument { [weak self] snapshot, _ in
+                DispatchQueue.main.async {
+                    if let data = snapshot?.data() {
+                        self?.applySharedSettings(data)
+                    } else {
+                        AppearanceManager.applySavedAppearance()
+                    }
+                    self?.navigateToMainApp()
+                }
+            }
+    }
+    
+    private func applySharedSettings(_ data: [String: Any]) {
+        SharedSettingsStore.apply(data)
+    }
+    
+    private func accountSettingsDocumentID(for email: String) -> String {
+        let normalizedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return Data(normalizedEmail.utf8)
+            .base64EncodedString()
+            .replacingOccurrences(of: "/", with: "_")
+            .replacingOccurrences(of: "+", with: "-")
+            .replacingOccurrences(of: "=", with: "")
+    }
+    
+    private func nonEmpty(_ value: String?) -> String? {
+        guard let trimmedValue = value?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmedValue.isEmpty else {
+            return nil
+        }
+        return trimmedValue
     }
     
     private func loginErrorMessage(from error: Error) -> String {

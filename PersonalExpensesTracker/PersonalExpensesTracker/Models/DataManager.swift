@@ -29,8 +29,62 @@ class DataManager {
     
     func saveUserProfile(user: User, completion: @escaping (Bool) -> Void)
     {
-        db.collection("users").document(user.uid).setData(user.dictionary, merge: true) { error in
+        var profileData = user.dictionary
+        profileData["normalizedUsername"] = Self.normalizedUsername(user.username)
+        db.collection("users").document(user.uid).setData(profileData, merge: true) { error in
             completion(error == nil)
+        }
+    }
+    
+    func isUsernameAvailable(_ username: String, completion: @escaping (Result<Bool, Error>) -> Void) {
+        let normalizedUsername = Self.normalizedUsername(username)
+        guard !normalizedUsername.isEmpty else {
+            completion(.success(false))
+            return
+        }
+        
+        db.collection("usernames").document(normalizedUsername).getDocument { snapshot, error in
+            if let error = error {
+                completion(.failure(error))
+            } else {
+                completion(.success(snapshot?.exists != true))
+            }
+        }
+    }
+    
+    func reserveUsername(_ username: String, uid: String, email: String, completion: @escaping (Result<Void, Error>) -> Void) {
+        let normalizedUsername = Self.normalizedUsername(username)
+        guard !normalizedUsername.isEmpty else {
+            completion(.failure(usernameError("Please enter a valid username.")))
+            return
+        }
+        
+        let usernameReference = db.collection("usernames").document(normalizedUsername)
+        db.runTransaction({ transaction, errorPointer in
+            do {
+                let snapshot = try transaction.getDocument(usernameReference)
+                if snapshot.exists {
+                    errorPointer?.pointee = self.usernameError("Username already taken.")
+                    return nil
+                }
+                
+                transaction.setData([
+                    "uid": uid,
+                    "email": email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased(),
+                    "username": username,
+                    "createdAt": FieldValue.serverTimestamp()
+                ], forDocument: usernameReference)
+                return nil
+            } catch let error as NSError {
+                errorPointer?.pointee = error
+                return nil
+            }
+        }) { _, error in
+            if let error = error {
+                completion(.failure(error))
+            } else {
+                completion(.success(()))
+            }
         }
     }
     
@@ -45,17 +99,31 @@ class DataManager {
                 return
             }
             
-            guard let snapshot = snapshot,
-                  snapshot.exists,
-                  let data = snapshot.data(),
-                  let user = User(uid: uid, dictionary: data) else {
-                let fallbackUser = self.authFallbackUser(uid: uid)
-                self.saveUserProfile(user: fallbackUser) { _ in }
-                completion(.success(fallbackUser))
+            let fallbackUser = self.authFallbackUser(uid: uid)
+            let currentProfile: User
+            if let snapshot = snapshot,
+               snapshot.exists,
+               let data = snapshot.data(),
+               let user = User(uid: uid, dictionary: data) {
+                currentProfile = self.mergedProfile(uid: uid, current: fallbackUser, candidate: user)
+            } else {
+                currentProfile = fallbackUser
+            }
+            
+            guard let email = self.nonEmpty(currentProfile.email), self.isSparseProfile(currentProfile, email: email) else {
+                if snapshot?.exists != true {
+                    self.saveUserProfile(user: currentProfile) { _ in }
+                }
+                completion(.success(currentProfile))
                 return
             }
             
-            completion(.success(user))
+            self.fetchRicherProfileForEmail(uid: uid, email: email, currentProfile: currentProfile) { repairedProfile in
+                if self.profileScore(repairedProfile, email: email) > self.profileScore(currentProfile, email: email) || snapshot?.exists != true {
+                    self.saveUserProfile(user: repairedProfile) { _ in }
+                }
+                completion(.success(repairedProfile))
+            }
         }
     }
     
@@ -78,29 +146,183 @@ class DataManager {
         )
     }
     
+    private func fetchRicherProfileForEmail(
+        uid: String,
+        email: String,
+        currentProfile: User,
+        completion: @escaping (User) -> Void
+    ) {
+        fetchProfilesByEmailQueries(email: email) { queriedProfiles in
+            if let bestProfile = self.bestRicherProfile(from: queriedProfiles, email: email, currentProfile: currentProfile) {
+                completion(self.mergedProfile(uid: uid, current: currentProfile, candidate: bestProfile))
+                return
+            }
+            
+            self.fetchProfilesByScanningUsers(email: email) { scannedProfiles in
+                guard let bestProfile = self.bestRicherProfile(from: scannedProfiles, email: email, currentProfile: currentProfile) else {
+                    completion(currentProfile)
+                    return
+                }
+                
+                completion(self.mergedProfile(uid: uid, current: currentProfile, candidate: bestProfile))
+            }
+        }
+    }
+    
+    private func fetchProfilesByEmailQueries(email: String, completion: @escaping ([User]) -> Void) {
+        let emailValues = Array(Set([email, email.lowercased()]))
+        let fields = ["email", "userEmail"]
+        let group = DispatchGroup()
+        var profilesByID: [String: User] = [:]
+        
+        for field in fields {
+            for emailValue in emailValues {
+                group.enter()
+                db.collection("users").whereField(field, isEqualTo: emailValue).getDocuments { snapshot, _ in
+                    snapshot?.documents.forEach { document in
+                        guard self.documentEmailMatches(document.data(), email: email),
+                              let user = User(uid: document.documentID, dictionary: document.data()) else { return }
+                        profilesByID[document.documentID] = user
+                    }
+                    group.leave()
+                }
+            }
+        }
+        
+        group.notify(queue: .main) {
+            completion(Array(profilesByID.values))
+        }
+    }
+    
+    private func fetchProfilesByScanningUsers(email: String, completion: @escaping ([User]) -> Void) {
+        db.collection("users").limit(to: 100).getDocuments { snapshot, _ in
+            let profiles = snapshot?.documents.compactMap { document -> User? in
+                guard self.documentEmailMatches(document.data(), email: email) else { return nil }
+                return User(uid: document.documentID, dictionary: document.data())
+            } ?? []
+            completion(profiles)
+        }
+    }
+    
+    private func bestRicherProfile(from profiles: [User], email: String, currentProfile: User) -> User? {
+        guard let bestProfile = profiles.max(by: {
+            self.profileScore($0, email: email) < self.profileScore($1, email: email)
+        }),
+              profileScore(bestProfile, email: email) > profileScore(currentProfile, email: email) else {
+            return nil
+        }
+        
+        return bestProfile
+    }
+    
+    private func mergedProfile(uid: String, current: User, candidate: User) -> User {
+        let email = nonEmpty(current.email) ?? nonEmpty(candidate.email) ?? Auth.auth().currentUser?.email ?? ""
+        return User(
+            uid: uid,
+            email: email,
+            username: preferredName(current: current.username, candidate: candidate.username, email: email),
+            firstName: preferredName(current: current.firstName, candidate: candidate.firstName, email: email),
+            lastName: nonEmpty(current.lastName) ?? nonEmpty(candidate.lastName) ?? "",
+            profileImageBase64: current.profileImageBase64 ?? candidate.profileImageBase64,
+            preferredCurrency: current.preferredCurrency.isEmpty ? candidate.preferredCurrency : current.preferredCurrency
+        )
+    }
+    
+    private func preferredName(current: String, candidate: String, email: String) -> String {
+        let emailUsername = usernameFromEmail(email)
+        if let candidate = nonEmpty(candidate), candidate.caseInsensitiveCompare(emailUsername) != .orderedSame {
+            return candidate
+        }
+        if let current = nonEmpty(current) {
+            return current
+        }
+        return nonEmpty(candidate) ?? ""
+    }
+    
+    private func isSparseProfile(_ user: User, email: String) -> Bool {
+        let emailUsername = usernameFromEmail(email)
+        let weakUsername = user.username.isEmpty || user.username.caseInsensitiveCompare(emailUsername) == .orderedSame
+        let weakFirstName = user.firstName.isEmpty || user.firstName.caseInsensitiveCompare(emailUsername) == .orderedSame
+        return user.lastName.isEmpty && (weakUsername || weakFirstName)
+    }
+    
+    private func profileScore(_ user: User, email: String) -> Int {
+        let emailUsername = usernameFromEmail(email)
+        var score = 0
+        
+        if !user.username.isEmpty {
+            score += user.username.caseInsensitiveCompare(emailUsername) == .orderedSame ? 1 : 4
+        }
+        if !user.firstName.isEmpty {
+            score += user.firstName.caseInsensitiveCompare(emailUsername) == .orderedSame ? 1 : 4
+        }
+        if !user.lastName.isEmpty {
+            score += 4
+        }
+        if !user.fullName.isEmpty && user.fullName.caseInsensitiveCompare(emailUsername) != .orderedSame {
+            score += 2
+        }
+        if user.profileImageBase64 != nil {
+            score += 1
+        }
+        
+        return score
+    }
+    
+    private func usernameFromEmail(_ email: String) -> String {
+        email.components(separatedBy: "@").first ?? ""
+    }
+    
+    private func documentEmailMatches(_ data: [String: Any], email: String) -> Bool {
+        let normalizedEmail = email.lowercased()
+        let emailKeys = ["email", "userEmail", "Email"]
+        return emailKeys.contains { key in
+            guard let value = data[key] as? String else { return false }
+            return value.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() == normalizedEmail
+        }
+    }
+    
+    static func normalizedUsername(_ username: String) -> String {
+        username
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+    }
+    
+    private func usernameError(_ message: String) -> NSError {
+        NSError(
+            domain: "PersonalExpensesTracker.Username",
+            code: 1,
+            userInfo: [NSLocalizedDescriptionKey: message]
+        )
+    }
+    
+    private func nonEmpty(_ value: String?) -> String? {
+        guard let trimmedValue = value?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmedValue.isEmpty else {
+            return nil
+        }
+        return trimmedValue
+    }
+    
     // MARK: - Expense Operations
     
     // CREATE
     func addExpense(_ expense: Expense, completion: @escaping (Bool) -> Void) {
-        guard let uid = currentUserID else {
-            completion(false)
-            return
-        }
-        
-        db.collection("users").document(uid).collection("expenses").addDocument(data: expense.dictionary) { error in
+        ExpenseStore.addExpense(expense.dictionary) { error in
             completion(error == nil)
         }
     }
     
     // READ ALL
     func fetchExpenses(completion: @escaping (Result<[Expense], Error>) -> Void) {
-        guard let uid = currentUserID else {
+        guard let expensesCollection = ExpenseStore.currentExpensesCollection else {
             completion(.failure(dataError))
-            return }
+            return
+        }
         
-        db.collection("users").document(uid).collection("expenses")
-            .order(by: "date", descending: true)
-            .getDocuments { snapshot, error in
+        ExpenseStore.migrateLegacyExpensesIfNeeded {
+            expensesCollection
+                .order(by: "date", descending: true)
+                .getDocuments { snapshot, error in
             if let error = error {
                 completion(.failure(error))
                 return
@@ -116,29 +338,20 @@ class DataManager {
                     return Expense(id: doc.documentID, dictionary: doc.data())
                 }
                 completion(.success(expenses))
+            }
         }
     }
     
     // UPDATE
     func updateExpense(_ expense: Expense, completion: @escaping (Bool) -> Void) {
-        guard let uid = currentUserID else {
-            completion(false)
-            return
-        }
-        
-        db.collection("users").document(uid).collection("expenses").document(expense.id).updateData(expense.dictionary) { error in
+        ExpenseStore.updateExpense(id: expense.id, data: expense.dictionary) { error in
             completion(error == nil)
         }
     }
     
     // DELETE
     func deleteExpense(_ expense: Expense, completion: @escaping (Bool) -> Void) {
-        guard let uid = currentUserID else {
-            completion(false)
-            return
-        }
-        
-        db.collection("users").document(uid).collection("expenses").document(expense.id).delete { error in
+        ExpenseStore.deleteExpenseEverywhere(id: expense.id) { error in
             completion(error == nil)
         }
     }
