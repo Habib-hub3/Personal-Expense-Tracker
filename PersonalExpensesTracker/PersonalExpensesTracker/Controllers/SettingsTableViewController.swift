@@ -39,6 +39,10 @@ class SettingsTableViewController: UITableViewController, UIImagePickerControlle
         setupMenus()
         loadUserData()
         loadSavedSettings()
+        registerForTraitChanges(UITraitCollection.systemTraitsAffectingColorAppearance) {
+            (self: Self, _: UITraitCollection) in
+            self.applyControlStyles()
+        }
     }
     
     override func viewWillAppear(_ animated: Bool) {
@@ -64,8 +68,15 @@ class SettingsTableViewController: UITableViewController, UIImagePickerControlle
         profileImageView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(profileImageTapped)))
         setDefaultProfileImage()
         setupResponsiveLayout()
-        tableView.cellForRow(at: IndexPath(row: 0, section: 0))?.accessoryType = .disclosureIndicator
-        tableView.cellForRow(at: IndexPath(row: 0, section: 0))?.selectionStyle = .default
+        applyControlStyles()
+    }
+    
+    private func applyControlStyles() {
+        FormControlStyler.styleMenuButton(currencyButton)
+        FormControlStyler.styleMenuButton(defaultCategoryButton)
+        FormControlStyler.styleFilledButton(clearDataButton, title: clearDataButton?.title(for: .normal), color: .systemRed)
+        FormControlStyler.styleFilledButton(logoutButton, title: logoutButton?.title(for: .normal), color: .systemRed)
+        tableView.visibleCells.forEach { FormControlStyler.applyCellStyle(to: $0) }
     }
     
     private func setupResponsiveLayout() {
@@ -143,10 +154,10 @@ class SettingsTableViewController: UITableViewController, UIImagePickerControlle
             if row === clearDataButton {
                 constraints.append(contentsOf: [
                     row.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
-                    row.leadingAnchor.constraint(greaterThanOrEqualTo: contentView.leadingAnchor, constant: 40),
-                    row.trailingAnchor.constraint(lessThanOrEqualTo: contentView.trailingAnchor, constant: -40),
+                    row.leadingAnchor.constraint(greaterThanOrEqualTo: contentView.leadingAnchor, constant: FormControlStyler.horizontalPadding),
+                    row.trailingAnchor.constraint(lessThanOrEqualTo: contentView.trailingAnchor, constant: -FormControlStyler.horizontalPadding),
                     row.widthAnchor.constraint(lessThanOrEqualToConstant: 320),
-                    row.heightAnchor.constraint(equalToConstant: 40)
+                    row.heightAnchor.constraint(equalToConstant: FormControlStyler.controlHeight)
                 ])
             } else {
                 constraints.append(contentsOf: [
@@ -227,23 +238,27 @@ class SettingsTableViewController: UITableViewController, UIImagePickerControlle
         let currencyActions = currencies.map {
             currency in UIAction(title: currency) { [weak self] _ in
                 self?.currencyButton.setTitle(currency, for: .normal)
+                FormControlStyler.styleMenuButton(self?.currencyButton, title: currency)
                 UserDefaults.standard.set(currency, forKey: "appCurrency")
                 self?.saveSharedSettings(["preferredCurrency": currency, "currency": currency])
             }
         }
         currencyButton?.menu = UIMenu(title: "Select Currency", children: currencyActions)
         currencyButton?.showsMenuAsPrimaryAction = true
+        FormControlStyler.styleMenuButton(currencyButton)
         
         //Category Dropdown Menu
         let categoryActions = categories.map {
             category in UIAction(title: category) { [weak self] _ in
                 self?.defaultCategoryButton.setTitle(category, for: .normal)
+                FormControlStyler.styleMenuButton(self?.defaultCategoryButton, title: category)
                 UserDefaults.standard.set(category, forKey: "defaultCategory")
                 self?.saveSharedSettings(["defaultCategory": category])
             }
         }
         defaultCategoryButton?.menu = UIMenu(title: "Select Category", children: categoryActions)
         defaultCategoryButton?.showsMenuAsPrimaryAction = true
+        FormControlStyler.styleMenuButton(defaultCategoryButton)
     }
     
     // MARK: - Load User Data & Prefrences
@@ -293,9 +308,11 @@ class SettingsTableViewController: UITableViewController, UIImagePickerControlle
         // Currency & category
         if let currency = UserDefaults.standard.string(forKey: "appCurrency"){
             currencyButton?.setTitle(currency, for: .normal)
+            FormControlStyler.styleMenuButton(currencyButton, title: currency)
         }
         if let category = UserDefaults.standard.string(forKey: "defaultCategory"){
             defaultCategoryButton?.setTitle(category, for: .normal)
+            FormControlStyler.styleMenuButton(defaultCategoryButton, title: category)
         }
         
         // Reminders
@@ -325,6 +342,13 @@ class SettingsTableViewController: UITableViewController, UIImagePickerControlle
         }
     }
     
+    override func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
+        FormControlStyler.applyCellStyle(to: cell)
+        if isProfileIndexPath(indexPath) {
+            cell.accessoryType = .disclosureIndicator
+            cell.selectionStyle = .default
+        }
+    }
     // MARK: - Actions
     
     @IBAction func darkModeToggled(_ sender: UISwitch) {
@@ -368,6 +392,8 @@ class SettingsTableViewController: UITableViewController, UIImagePickerControlle
             self?.performDataDeletion()
         })
         alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
+        alert.popoverPresentationController?.sourceView = sender
+        alert.popoverPresentationController?.sourceRect = sender.bounds
         present(alert, animated: true)
     }
     
@@ -396,9 +422,13 @@ class SettingsTableViewController: UITableViewController, UIImagePickerControlle
         // Allows tapping non-button cells directly if needed
         override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
             tableView.deselectRow(at: indexPath, animated: true)
-            if indexPath.row == 0 {
+            if isProfileIndexPath(indexPath) {
                 showAccountDetails()
             }
+        }
+
+        private func isProfileIndexPath(_ indexPath: IndexPath) -> Bool {
+            indexPath.section == 0 && indexPath.row == 0
         }
 
         // MARK: - Helper Methods
@@ -792,11 +822,13 @@ class SettingsTableViewController: UITableViewController, UIImagePickerControlle
             
             if let currency = nonEmpty(data["preferredCurrency"] as? String) ?? nonEmpty(data["currency"] as? String) {
                 currencyButton?.setTitle(currency, for: .normal)
+                FormControlStyler.styleMenuButton(currencyButton, title: currency)
                 UserDefaults.standard.set(currency, forKey: "appCurrency")
             }
             
             if let category = nonEmpty(data["defaultCategory"] as? String) {
                 defaultCategoryButton?.setTitle(category, for: .normal)
+                FormControlStyler.styleMenuButton(defaultCategoryButton, title: category)
                 UserDefaults.standard.set(category, forKey: "defaultCategory")
             }
             

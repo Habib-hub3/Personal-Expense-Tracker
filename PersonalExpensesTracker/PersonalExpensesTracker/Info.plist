@@ -10,6 +10,8 @@
     <string>This app uses the camera so you can take profile, receipt, or item photos.</string>
     <key>NSPhotoLibraryUsageDescription</key>
     <string>This app uses your photo library so you can choose profile, receipt, or item photos.</string>
+    <key>UILaunchStoryboardName</key>
+    <string>Launch Screen</string>
     <key>UIApplicationSceneManifest</key>
     <dict>
         <key>UIApplicationSupportsMultipleScenes</key>

@@ -22,11 +22,23 @@ class RegisterViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
+        registerForTraitChanges(UITraitCollection.systemTraitsAffectingColorAppearance) {
+            (self: Self, _: UITraitCollection) in
+            self.refreshTextFieldAppearance()
+        }
     }
     
     private func setupUI() {
         passwordTextField.isSecureTextEntry = true
         confirmPasswordTextField.isSecureTextEntry = true
+        FormTextFieldStyler.apply(to: [
+            usernameTextField,
+            firstNameTextField,
+            lastNameTextField,
+            emailTextField,
+            passwordTextField,
+            confirmPasswordTextField
+        ])
         setupResponsiveLayout()
     }
    
@@ -103,7 +115,7 @@ class RegisterViewController: UIViewController {
         for (label, field) in orderedRows {
             constraints.append(contentsOf: [
                 field.trailingAnchor.constraint(equalTo: formView.trailingAnchor),
-                field.heightAnchor.constraint(equalToConstant: 40)
+                field.heightAnchor.constraint(equalToConstant: FormTextFieldStyler.fieldHeight)
             ])
             
             if let label = label {
@@ -135,6 +147,17 @@ class RegisterViewController: UIViewController {
         }
         
         NSLayoutConstraint.activate(constraints)
+    }
+    
+    private func refreshTextFieldAppearance() {
+        FormTextFieldStyler.apply(to: [
+            usernameTextField,
+            firstNameTextField,
+            lastNameTextField,
+            emailTextField,
+            passwordTextField,
+            confirmPasswordTextField
+        ])
     }
     
     // MARK: - IBActions

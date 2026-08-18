@@ -124,58 +124,38 @@ class ExpensesTableViewController: UITableViewController, UISearchResultsUpdatin
     }
     
     private func configureFilterButton() {
-        navigationItem.rightBarButtonItem = UIBarButtonItem(
+        let filterButton = UIBarButtonItem(
             image: UIImage(systemName: "line.3.horizontal.decrease.circle"),
-            menu: filterMenu()
+            style: .plain,
+            target: self,
+            action: #selector(filterButtonTapped)
         )
+        filterButton.tintColor = hasActiveFilters ? .systemBlue : nil
+        navigationItem.rightBarButtonItem = filterButton
     }
     
-    private func filterMenu() -> UIMenu {
-        let allCategoriesAction = UIAction(
-            title: "All Categories",
-            state: selectedCategoryFilter == nil ? .on : .off
-        ) { [weak self] _ in
-            self?.selectedCategoryFilter = nil
+    @objc private func filterButtonTapped() {
+        let filterViewController = ExpenseFilterOptionsViewController(
+            categories: ExpenseCategory.names,
+            months: availableMonths(),
+            selectedCategory: selectedCategoryFilter,
+            selectedMonth: selectedMonthFilter
+        )
+        filterViewController.onSelectionChanged = { [weak self] category, month in
+            self?.selectedCategoryFilter = category
+            self?.selectedMonthFilter = month
             self?.applyFilters()
             self?.configureFilterButton()
         }
         
-        let categoryActions = ExpenseCategory.names.map { category in
-            UIAction(
-                title: category,
-                image: UIImage(systemName: iconName(for: category)),
-                state: selectedCategoryFilter == category ? .on : .off
-            ) { [weak self] _ in
-                self?.selectedCategoryFilter = category
-                self?.applyFilters()
-                self?.configureFilterButton()
-            }
+        let navigationController = UINavigationController(rootViewController: filterViewController)
+        navigationController.modalPresentationStyle = .pageSheet
+        if let sheet = navigationController.sheetPresentationController {
+            sheet.detents = [.medium(), .large()]
+            sheet.prefersGrabberVisible = true
+            sheet.prefersScrollingExpandsWhenScrolledToEdge = true
         }
-        
-        let allMonthsAction = UIAction(
-            title: "All Months",
-            state: selectedMonthFilter == nil ? .on : .off
-        ) { [weak self] _ in
-            self?.selectedMonthFilter = nil
-            self?.applyFilters()
-            self?.configureFilterButton()
-        }
-        
-        let monthActions = availableMonths().map { month in
-            UIAction(
-                title: formattedMonth(month),
-                state: selectedMonthFilter.map { Calendar.current.isDate($0, equalTo: month, toGranularity: .month) } == true ? .on : .off
-            ) { [weak self] _ in
-                self?.selectedMonthFilter = month
-                self?.applyFilters()
-                self?.configureFilterButton()
-            }
-        }
-        
-        return UIMenu(children: [
-            UIMenu(title: "Category", options: .displayInline, children: [allCategoriesAction] + categoryActions),
-            UIMenu(title: "Month", options: .displayInline, children: [allMonthsAction] + monthActions)
-        ])
+        present(navigationController, animated: true)
     }
     
     private func applyFilters() {
@@ -255,6 +235,14 @@ class ExpensesTableViewController: UITableViewController, UISearchResultsUpdatin
         return cell
     }
     
+    override func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
+        if let expenseCell = cell as? ExpenseTableViewCell {
+            expenseCell.applyAdaptiveStyle()
+        } else {
+            FormControlStyler.applyCellStyle(to: cell)
+        }
+    }
+    
     // MARK: - Swipe to Delete
     
     override func tableView(_ tableView: UITableView, canEditRowAt indexPath: IndexPath) -> Bool {
@@ -323,10 +311,164 @@ class ExpensesTableViewController: UITableViewController, UISearchResultsUpdatin
     
     // MARK: - Layout
     private func configureTableLayout() {
+        tableView.backgroundColor = .systemBackground
+        tableView.separatorColor = .separator
         tableView.rowHeight = UITableView.automaticDimension
         tableView.estimatedRowHeight = 76
         tableView.cellLayoutMarginsFollowReadableWidth = true
         tableView.insetsContentViewsToSafeArea = true
         tableView.contentInsetAdjustmentBehavior = .automatic
+    }
+}
+
+private final class ExpenseFilterOptionsViewController: UITableViewController {
+    var onSelectionChanged: ((String?, Date?) -> Void)?
+    
+    private let categories: [String]
+    private let months: [Date]
+    private var selectedCategory: String?
+    private var selectedMonth: Date?
+    
+    init(categories: [String], months: [Date], selectedCategory: String?, selectedMonth: Date?) {
+        self.categories = categories
+        self.months = months
+        self.selectedCategory = selectedCategory
+        self.selectedMonth = selectedMonth
+        super.init(style: .insetGrouped)
+        title = "Filters"
+    }
+    
+    required init?(coder: NSCoder) {
+        return nil
+    }
+    
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        tableView.backgroundColor = .systemBackground
+        tableView.separatorColor = .separator
+        tableView.register(UITableViewCell.self, forCellReuseIdentifier: "FilterOptionCell")
+        navigationItem.rightBarButtonItem = UIBarButtonItem(
+            barButtonSystemItem: .done,
+            target: self,
+            action: #selector(doneTapped)
+        )
+        navigationItem.leftBarButtonItem = UIBarButtonItem(
+            title: "Clear",
+            style: .plain,
+            target: self,
+            action: #selector(clearTapped)
+        )
+    }
+    
+    override func numberOfSections(in tableView: UITableView) -> Int {
+        return 2
+    }
+    
+    override func tableView(_ tableView: UITableView, titleForHeaderInSection section: Int) -> String? {
+        switch section {
+        case 0:
+            return "Category"
+        case 1:
+            return "Month"
+        default:
+            return nil
+        }
+    }
+    
+    override func tableView(_ tableView: UITableView, numberOfRowsInSection section: Int) -> Int {
+        switch section {
+        case 0:
+            return categories.count + 1
+        case 1:
+            return months.count + 1
+        default:
+            return 0
+        }
+    }
+    
+    override func tableView(_ tableView: UITableView, cellForRowAt indexPath: IndexPath) -> UITableViewCell {
+        let cell = tableView.dequeueReusableCell(withIdentifier: "FilterOptionCell", for: indexPath)
+        var configuration = UIListContentConfiguration.cell()
+        
+        switch indexPath.section {
+        case 0:
+            let isAllCategoriesRow = indexPath.row == 0
+            let category = isAllCategoriesRow ? nil : categories[indexPath.row - 1]
+            configuration.text = category ?? "All Categories"
+            configuration.image = UIImage(systemName: category.map(iconName(for:)) ?? "tray.full.fill")
+            cell.accessoryType = category == selectedCategory ? .checkmark : .none
+        case 1:
+            let isAllMonthsRow = indexPath.row == 0
+            let month = isAllMonthsRow ? nil : months[indexPath.row - 1]
+            configuration.text = month.map(formattedMonth) ?? "All Months"
+            configuration.image = UIImage(systemName: "calendar")
+            cell.accessoryType = monthMatchesSelection(month) ? .checkmark : .none
+        default:
+            break
+        }
+        
+        configuration.textProperties.color = .label
+        configuration.imageProperties.tintColor = .systemBlue
+        cell.contentConfiguration = configuration
+        cell.backgroundColor = .secondarySystemGroupedBackground
+        cell.tintColor = .systemBlue
+        return cell
+    }
+    
+    override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
+        tableView.deselectRow(at: indexPath, animated: true)
+        
+        switch indexPath.section {
+        case 0:
+            selectedCategory = indexPath.row == 0 ? nil : categories[indexPath.row - 1]
+        case 1:
+            selectedMonth = indexPath.row == 0 ? nil : months[indexPath.row - 1]
+        default:
+            break
+        }
+        
+        onSelectionChanged?(selectedCategory, selectedMonth)
+        tableView.reloadSections(IndexSet(integer: indexPath.section), with: .automatic)
+    }
+    
+    @objc private func doneTapped() {
+        dismiss(animated: true)
+    }
+    
+    @objc private func clearTapped() {
+        selectedCategory = nil
+        selectedMonth = nil
+        onSelectionChanged?(nil, nil)
+        tableView.reloadData()
+    }
+    
+    private func monthMatchesSelection(_ month: Date?) -> Bool {
+        switch (month, selectedMonth) {
+        case (nil, nil):
+            return true
+        case let (month?, selectedMonth?):
+            return Calendar.current.isDate(month, equalTo: selectedMonth, toGranularity: .month)
+        default:
+            return false
+        }
+    }
+    
+    private func formattedMonth(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM yyyy"
+        return formatter.string(from: date)
+    }
+    
+    private func iconName(for category: String) -> String {
+        switch category.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
+        case "food": return "fork.knife"
+        case "transport": return "bus.fill"
+        case "shopping": return "cart.fill"
+        case "bills", "utilities": return "doc.text.fill"
+        case "entertainment": return "film.fill"
+        case "health": return "heart.fill"
+        case "general", "other": return "tag.fill"
+        default: return "questionmark.circle.fill"
+        }
     }
 }

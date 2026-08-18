@@ -14,6 +14,7 @@ class AddTableViewController: UITableViewController, UIImagePickerControllerDele
     // MARK: - IBOutlets
         @IBOutlet weak var titleTextField: UITextField!
         @IBOutlet weak var amountTextField: UITextField!
+        @IBOutlet weak var notesTextField: UITextField!
         @IBOutlet weak var categoryButton: UIButton!
         @IBOutlet weak var datePicker: UIDatePicker!
         @IBOutlet weak var receiptImageView: UIImageView!
@@ -30,6 +31,10 @@ class AddTableViewController: UITableViewController, UIImagePickerControllerDele
             setupUI()
             configureTableLayout()
             observeSharedSettingsChanges()
+            registerForTraitChanges(UITraitCollection.systemTraitsAffectingColorAppearance) {
+                (self: Self, _: UITraitCollection) in
+                self.refreshAdaptiveControls()
+            }
         }
         
         deinit {
@@ -44,10 +49,22 @@ class AddTableViewController: UITableViewController, UIImagePickerControllerDele
             selectedCategory = defaultCat
             categoryButton.setTitle(selectedCategory, for: .normal)
 
+            configureTextFields()
             configureCategoryMenu()
             setupReceiptImageView()
             setupNavigationItems()
             setupFormValidation()
+            tableView.visibleCells.forEach { FormControlStyler.applyCellStyle(to: $0) }
+        }
+    
+        private func configureTextFields() {
+            FormTextFieldStyler.apply(to: [amountTextField, titleTextField, notesTextField])
+            amountTextField.keyboardType = .decimalPad
+            [amountTextField, titleTextField, notesTextField].forEach { textField in
+                if let textField = textField, let contentView = textField.superview {
+                    FormTextFieldStyler.constrain(textField, in: contentView)
+                }
+            }
         }
     
         private func configureCategoryMenu() {
@@ -56,11 +73,16 @@ class AddTableViewController: UITableViewController, UIImagePickerControllerDele
                     self?.selectedCategory = category
                     self?.categoryButton.setTitle(category, for: .normal)
                     self?.configureCategoryMenu()
+                    self?.updateReceiptPlaceholderIfNeeded()
                     self?.updateSaveButtonState()
                 }
             }
             categoryButton.menu = UIMenu(title: "Select Category", children: categoryActions)
             categoryButton.showsMenuAsPrimaryAction = true
+            FormControlStyler.styleMenuButton(categoryButton, title: selectedCategory)
+            if let contentView = categoryButton.superview {
+                FormControlStyler.constrainButton(categoryButton, in: contentView)
+            }
         }
     
         private func setupNavigationItems() {
@@ -94,6 +116,7 @@ class AddTableViewController: UITableViewController, UIImagePickerControllerDele
             
             let selectedCurrency = CurrencyConverter.selectedCurrencyDisplayName
             let amountInUSD = CurrencyConverter.usdAmount(from: amount, currencyDisplayName: selectedCurrency)
+            let notesText = notesTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             saveButton.isEnabled = false
             saveButton.title = "Saving..."
 
@@ -104,6 +127,7 @@ class AddTableViewController: UITableViewController, UIImagePickerControllerDele
                 "entryCurrencyCode": CurrencyConverter.code(from: selectedCurrency),
                 "category": selectedCategory,
                 "date": Timestamp(date: datePicker.date),
+                "notes": notesText,
                 "createdByUserID": uid,
                 "ownerEmail": ExpenseStore.currentOwnerEmail ?? "",
                 "updatedAt": FieldValue.serverTimestamp()
@@ -210,11 +234,12 @@ class AddTableViewController: UITableViewController, UIImagePickerControllerDele
         private func resetForm() {
             titleTextField.text = nil
             amountTextField.text = nil
+            notesTextField.text = nil
             datePicker.date = Date()
             selectedReceiptImage = nil
             receiptImageBase64 = nil
-            receiptImageView.image = UIImage(systemName: "photo")
             applyDefaultCategoryIfFormIsEmpty()
+            updateReceiptPlaceholderIfNeeded()
             updateSaveButtonState()
         }
     
@@ -223,6 +248,7 @@ class AddTableViewController: UITableViewController, UIImagePickerControllerDele
             amountTextField.delegate = self
             titleTextField.addTarget(self, action: #selector(formFieldChanged), for: .editingChanged)
             amountTextField.addTarget(self, action: #selector(formFieldChanged), for: .editingChanged)
+            notesTextField?.addTarget(self, action: #selector(formFieldChanged), for: .editingChanged)
             datePicker.addTarget(self, action: #selector(formFieldChanged), for: .valueChanged)
             updateSaveButtonState()
         }
@@ -258,20 +284,59 @@ class AddTableViewController: UITableViewController, UIImagePickerControllerDele
         private func applyDefaultCategoryIfFormIsEmpty() {
             let titleText = titleTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
             let amountText = amountTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-            guard titleText.isEmpty, amountText.isEmpty, receiptImageBase64 == nil else { return }
+            let notesText = notesTextField?.text?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+            guard titleText.isEmpty, amountText.isEmpty, notesText.isEmpty, receiptImageBase64 == nil else { return }
             
             let defaultCategory = UserDefaults.standard.string(forKey: "defaultCategory") ?? "General"
             selectedCategory = defaultCategory
             categoryButton.setTitle(defaultCategory, for: .normal)
             configureCategoryMenu()
+            updateReceiptPlaceholderIfNeeded()
         }
     
         private func setupReceiptImageView() {
-            receiptImageView.image = UIImage(systemName: "photo")
-            receiptImageView.tintColor = .secondaryLabel
-            receiptImageView.contentMode = .scaleAspectFit
+            updateReceiptPlaceholderIfNeeded()
+            receiptImageView.tintColor = nil
+            receiptImageView.contentMode = .scaleAspectFill
+            receiptImageView.clipsToBounds = true
+            receiptImageView.layer.cornerRadius = 8
             receiptImageView.isUserInteractionEnabled = true
+            configureResponsiveReceiptImageView()
             receiptImageView.addGestureRecognizer(UITapGestureRecognizer(target: self, action: #selector(receiptImageTapped)))
+        }
+    
+        private func configureResponsiveReceiptImageView() {
+            guard let contentView = receiptImageView.superview else { return }
+            receiptImageView.translatesAutoresizingMaskIntoConstraints = false
+            NSLayoutConstraint.deactivate(contentView.constraints.filter { constraint in
+                constraint.firstItem === receiptImageView || constraint.secondItem === receiptImageView
+            })
+            
+            NSLayoutConstraint.activate([
+                receiptImageView.topAnchor.constraint(equalTo: contentView.topAnchor, constant: 10),
+                receiptImageView.bottomAnchor.constraint(equalTo: contentView.bottomAnchor, constant: -10),
+                receiptImageView.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
+                receiptImageView.leadingAnchor.constraint(greaterThanOrEqualTo: contentView.leadingAnchor, constant: 20),
+                receiptImageView.trailingAnchor.constraint(lessThanOrEqualTo: contentView.trailingAnchor, constant: -20),
+                receiptImageView.widthAnchor.constraint(lessThanOrEqualToConstant: 680),
+                receiptImageView.heightAnchor.constraint(equalTo: receiptImageView.widthAnchor, multiplier: 9.0 / 16.0)
+            ])
+        }
+    
+        private func updateReceiptPlaceholderIfNeeded() {
+            guard selectedReceiptImage == nil else { return }
+            receiptImageView?.image = CategoryImageProvider.image(
+                for: selectedCategory,
+                size: CGSize(width: 640, height: 360),
+                traitCollection: traitCollection
+            )
+        }
+    
+        private func refreshAdaptiveControls() {
+            configureTextFields()
+            FormControlStyler.styleMenuButton(categoryButton, title: selectedCategory)
+            updateReceiptPlaceholderIfNeeded()
+            tableView.visibleCells.forEach { FormControlStyler.applyCellStyle(to: $0) }
         }
     
         @objc private func receiptImageTapped() {
@@ -283,9 +348,11 @@ class AddTableViewController: UITableViewController, UIImagePickerControllerDele
                 })
             }
             
-            alert.addAction(UIAlertAction(title: "Choose from Gallery", style: .default) { [weak self] _ in
-                self?.presentImagePicker(sourceType: .photoLibrary)
-            })
+            if UIImagePickerController.isSourceTypeAvailable(.photoLibrary) {
+                alert.addAction(UIAlertAction(title: "Choose from Gallery", style: .default) { [weak self] _ in
+                    self?.presentImagePicker(sourceType: .photoLibrary)
+                })
+            }
             alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
             alert.popoverPresentationController?.sourceView = receiptImageView
             alert.popoverPresentationController?.sourceRect = receiptImageView.bounds
@@ -308,6 +375,7 @@ class AddTableViewController: UITableViewController, UIImagePickerControllerDele
             
             guard let image = info[.originalImage] as? UIImage else { return }
             receiptImageView.image = image
+            receiptImageView.contentMode = .scaleAspectFill
             selectedReceiptImage = image
             receiptImageBase64 = nil
             updateSaveButtonState()
@@ -363,4 +431,27 @@ class AddTableViewController: UITableViewController, UIImagePickerControllerDele
         tableView.cellLayoutMarginsFollowReadableWidth = true
         tableView.insetsContentViewsToSafeArea = true
     }
+    
+        override func tableView(_ tableView: UITableView, heightForRowAt indexPath: IndexPath) -> CGFloat {
+            switch indexPath.row {
+            case 0, 1, 2:
+                return FormTextFieldStyler.rowHeight
+            case 3:
+                return FormControlStyler.controlHeight + 20
+            case 5:
+                return preferredImageRowHeight(for: tableView.bounds.width)
+            default:
+                return super.tableView(tableView, heightForRowAt: indexPath)
+            }
+        }
+    
+        override func tableView(_ tableView: UITableView, willDisplay cell: UITableViewCell, forRowAt indexPath: IndexPath) {
+            FormControlStyler.applyCellStyle(to: cell)
+        }
+    
+        private func preferredImageRowHeight(for width: CGFloat) -> CGFloat {
+            let horizontalPadding: CGFloat = 40
+            let imageWidth = max(0, min(width - horizontalPadding, 680))
+            return min(max(imageWidth * 9 / 16 + 20, 176), 404)
+        }
 }

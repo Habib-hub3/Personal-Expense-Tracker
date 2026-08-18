@@ -12,6 +12,10 @@ enum CategoryImageProvider {
         traitCollection: UITraitCollection = .current
     ) -> UIImage {
         let normalizedCategory = category.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        if let assetImage = UIImage(named: assetName(for: normalizedCategory)) {
+            return assetImage
+        }
+        
         let cacheKey = cacheKey(for: normalizedCategory, size: size, traitCollection: traitCollection)
         if let cachedImage = imageCache.object(forKey: cacheKey as NSString) {
             return cachedImage
@@ -55,6 +59,20 @@ enum CategoryImageProvider {
     }
     
     private static let imageCache = NSCache<NSString, UIImage>()
+    
+    private static func assetName(for category: String) -> String {
+        switch category {
+        case "food": return "CategorySampleFood"
+        case "transport": return "CategorySampleTransport"
+        case "shopping": return "CategorySampleShopping"
+        case "bills": return "CategorySampleBills"
+        case "entertainment": return "CategorySampleEntertainment"
+        case "utilities": return "CategorySampleUtilities"
+        case "health": return "CategorySampleHealth"
+        case "other": return "CategorySampleOther"
+        default: return "CategorySampleGeneral"
+        }
+    }
     
     private static func cacheKey(for category: String, size: CGSize, traitCollection: UITraitCollection) -> String {
         "\(category)-\(Int(size.width))x\(Int(size.height))-\(traitCollection.userInterfaceStyle.rawValue)"

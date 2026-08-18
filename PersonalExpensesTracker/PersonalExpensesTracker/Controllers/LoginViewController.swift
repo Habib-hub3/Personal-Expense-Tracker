@@ -18,24 +18,21 @@ class LoginViewController: UIViewController {
     @IBOutlet weak var signUpButton: UIButton!
     
     private var shouldPerformLoginSegue = false
+    private weak var logoImageView: UIImageView?
     
     override func viewDidLoad() {
         super.viewDidLoad()
         setupUI()
-    }
-    
-    override func viewWillAppear(_ animated: Bool) {
-        super.viewWillAppear(animated)
-        AppearanceManager.applyLightMode()
+        registerForTraitChanges(UITraitCollection.systemTraitsAffectingColorAppearance) {
+            (self: Self, _: UITraitCollection) in
+            self.refreshAdaptiveAppearance()
+        }
     }
     
     private func setupUI() {
         passwordTextField.isSecureTextEntry = true
-        [emailTextField, passwordTextField].forEach { textField in
-            textField?.borderStyle = .roundedRect
-            textField?.font = .systemFont(ofSize: 17)
-            textField?.autocorrectionType = .no
-        }
+        FormTextFieldStyler.apply(to: [emailTextField, passwordTextField])
+        [emailTextField, passwordTextField].forEach { $0?.autocorrectionType = .no }
         logInButton.layer.cornerRadius = 8
         signUpButton.titleLabel?.adjustsFontSizeToFitWidth = true
         signUpButton.titleLabel?.minimumScaleFactor = 0.8
@@ -45,6 +42,9 @@ class LoginViewController: UIViewController {
     private func setupResponsiveLayout() {
         guard let formView = emailTextField.superview,
               let logoImageView = view.subviews.compactMap({ $0 as? UIImageView }).first else { return }
+        
+        self.logoImageView = logoImageView
+        configureLogoAppearance(for: logoImageView)
         
         [formView, logoImageView, emailTextField, passwordTextField, logInButton, signUpButton].forEach {
             $0?.translatesAutoresizingMaskIntoConstraints = false
@@ -97,12 +97,12 @@ class LoginViewController: UIViewController {
             emailTextField.topAnchor.constraint(equalTo: formView.topAnchor),
             emailTextField.leadingAnchor.constraint(equalTo: formView.leadingAnchor),
             emailTextField.trailingAnchor.constraint(equalTo: formView.trailingAnchor),
-            emailTextField.heightAnchor.constraint(equalToConstant: 44),
+            emailTextField.heightAnchor.constraint(equalToConstant: FormTextFieldStyler.fieldHeight),
             
             passwordTextField.topAnchor.constraint(equalTo: emailTextField.bottomAnchor, constant: 12),
             passwordTextField.leadingAnchor.constraint(equalTo: formView.leadingAnchor),
             passwordTextField.trailingAnchor.constraint(equalTo: formView.trailingAnchor),
-            passwordTextField.heightAnchor.constraint(equalToConstant: 44),
+            passwordTextField.heightAnchor.constraint(equalToConstant: FormTextFieldStyler.fieldHeight),
             
             logInButton.topAnchor.constraint(equalTo: passwordTextField.bottomAnchor, constant: 16),
             logInButton.leadingAnchor.constraint(equalTo: formView.leadingAnchor),
@@ -127,6 +127,23 @@ class LoginViewController: UIViewController {
         }
         
         NSLayoutConstraint.activate(constraints)
+    }
+    
+    private func refreshAdaptiveAppearance() {
+        FormTextFieldStyler.apply(to: [emailTextField, passwordTextField])
+        if let logoImageView {
+            configureLogoAppearance(for: logoImageView)
+        }
+    }
+    
+    private func configureLogoAppearance(for logoImageView: UIImageView) {
+        let isDarkMode = traitCollection.userInterfaceStyle == .dark
+        logoImageView.image = UIImage(named: "AppLogo")
+        logoImageView.backgroundColor = isDarkMode ? .secondarySystemBackground : .clear
+        logoImageView.layer.cornerRadius = 24
+        logoImageView.layer.borderWidth = isDarkMode ? 1 : 0
+        logoImageView.layer.borderColor = UIColor.separator.cgColor
+        logoImageView.clipsToBounds = true
     }
     
     //MARK: - IBActions

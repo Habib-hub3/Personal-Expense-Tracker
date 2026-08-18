@@ -59,6 +59,11 @@ class SummaryViewController: UIViewController {
         setupResponsiveLayout()
         updateScopeButtons()
         updateCategoryMenu()
+        registerForTraitChanges(UITraitCollection.systemTraitsAffectingColorAppearance) {
+            (self: Self, _: UITraitCollection) in
+            self.updateScopeButtons()
+            FormControlStyler.styleMenuButton(self.categoryButton, title: self.selectedCategory ?? self.allCategoriesTitle)
+        }
         observeSharedSettingsChanges()
     }
     
@@ -84,10 +89,7 @@ class SummaryViewController: UIViewController {
         
         categoryButton.showsMenuAsPrimaryAction = true
         categoryButton.changesSelectionAsPrimaryAction = true
-        categoryButton.configuration = .filled()
-        categoryButton.configuration?.title = allCategoriesTitle
-        categoryButton.configuration?.image = UIImage(systemName: "line.3.horizontal.decrease.circle")
-        categoryButton.configuration?.imagePadding = 8
+        FormControlStyler.styleMenuButton(categoryButton, title: allCategoriesTitle)
         
         selectedCategoryTotalLabel.font = UIFontMetrics(forTextStyle: .largeTitle).scaledFont(for: .boldSystemFont(ofSize: 34))
         selectedCategoryTotalLabel.adjustsFontForContentSizeCategory = true
@@ -379,10 +381,15 @@ class SummaryViewController: UIViewController {
     }
     
     private func applyScopeStyle(to button: UIButton?, isSelected: Bool) {
-        button?.isSelected = isSelected
-        button?.tintColor = isSelected ? .systemBlue : .secondaryLabel
-        button?.backgroundColor = isSelected ? UIColor.systemBlue.withAlphaComponent(0.14) : UIColor.systemGray5
-        button?.layer.cornerRadius = 8
+        guard let button else { return }
+        let title = button.title(for: .normal) ?? button.configuration?.title
+        button.isSelected = isSelected
+        
+        if isSelected {
+            FormControlStyler.styleFilledButton(button, title: title, color: .systemBlue)
+        } else {
+            FormControlStyler.stylePlainButton(button, title: title)
+        }
     }
     
     private func updateCategoryMenu() {
@@ -409,7 +416,7 @@ class SummaryViewController: UIViewController {
         }
         
         categoryButton.menu = UIMenu(title: "Choose Category", children: [allAction] + categoryActions)
-        categoryButton.configuration?.title = selectedCategory ?? allCategoriesTitle
+        FormControlStyler.styleMenuButton(categoryButton, title: selectedCategory ?? allCategoriesTitle)
     }
     
     private func updateCategoryProgressBars() {

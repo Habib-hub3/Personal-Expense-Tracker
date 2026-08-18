@@ -19,27 +19,42 @@ class ExpenseTableViewCell: UITableViewCell {
 
         private let editButtonColor = UIColor(red: 0.4524506542, green: 0.6243542933, blue: 0.07266952616, alpha: 1)
         private var currentReceiptURL: String?
+        private var isShowingCategoryFallback = false
 
         override func awakeFromNib() {
             super.awakeFromNib()
             setupUI()
+            registerForTraitChanges(UITraitCollection.systemTraitsAffectingColorAppearance) {
+                (self: Self, _: UITraitCollection) in
+                self.applyAdaptiveStyle()
+                self.updateCategoryFallbackImageIfNeeded()
+            }
         }
     
         override func prepareForReuse() {
             super.prepareForReuse()
             currentReceiptURL = nil
+            isShowingCategoryFallback = false
             categoryImageView?.image = nil
             applyEditButtonColor()
         }
 
         private func setupUI() {
-            // Optional custom styling
+            applyAdaptiveStyle()
             amountLabel?.font = .systemFont(ofSize: 16, weight: .bold)
             titleLabel?.font = .systemFont(ofSize: 16, weight: .medium)
+            categoryImageView?.contentMode = .scaleAspectFit
+            categoryImageView?.clipsToBounds = true
+            categoryImageView?.layer.cornerRadius = 8
+            categoryImageView?.tintColor = .systemBlue
+        }
+    
+        func applyAdaptiveStyle() {
+            FormControlStyler.applyCellStyle(to: self)
+            titleLabel?.textColor = .label
+            amountLabel?.textColor = .label
             categoryLabel?.textColor = .secondaryLabel
             dateLabel?.textColor = .tertiaryLabel
-            categoryImageView?.contentMode = .scaleAspectFit
-            categoryImageView?.tintColor = .systemBlue
             applyEditButtonColor()
         }
     
@@ -56,7 +71,7 @@ class ExpenseTableViewCell: UITableViewCell {
             categoryLabel?.text = expense.category
             amountLabel?.text = CurrencyConverter.formattedAmount(fromUSD: expense.amount)
             setThumbnail(for: expense)
-            applyEditButtonColor()
+            applyAdaptiveStyle()
             
             let formatter = DateFormatter()
             formatter.dateStyle = .short
@@ -66,7 +81,9 @@ class ExpenseTableViewCell: UITableViewCell {
         private func setThumbnail(for expense: Expense) {
             if let image = image(fromBase64: expense.receiptImageBase64) {
                 currentReceiptURL = nil
+                isShowingCategoryFallback = false
                 categoryImageView?.tintColor = nil
+                categoryImageView?.contentMode = .scaleAspectFill
                 categoryImageView?.image = image
                 return
             }
@@ -74,7 +91,9 @@ class ExpenseTableViewCell: UITableViewCell {
             if let urlString = expense.receiptImageURL,
                let url = URL(string: urlString) {
                 currentReceiptURL = urlString
+                isShowingCategoryFallback = false
                 categoryImageView?.tintColor = nil
+                categoryImageView?.contentMode = .scaleAspectFit
                 categoryImageView?.image = UIImage(systemName: "photo")
                 URLSession.shared.dataTask(with: url) { [weak self] data, _, _ in
                     guard let self = self,
@@ -90,8 +109,24 @@ class ExpenseTableViewCell: UITableViewCell {
             }
             
             currentReceiptURL = nil
-            categoryImageView?.tintColor = .systemBlue
-            categoryImageView?.image = UIImage(systemName: iconName(for: expense.category))
+            isShowingCategoryFallback = true
+            categoryImageView?.tintColor = nil
+            categoryImageView?.contentMode = .scaleAspectFit
+            categoryImageView?.image = CategoryImageProvider.image(
+                for: expense.category,
+                size: CGSize(width: 120, height: 120),
+                traitCollection: traitCollection
+            )
+        }
+    
+        private func updateCategoryFallbackImageIfNeeded() {
+            guard isShowingCategoryFallback,
+                  let category = categoryLabel?.text else { return }
+            categoryImageView?.image = CategoryImageProvider.image(
+                for: category,
+                size: CGSize(width: 120, height: 120),
+                traitCollection: traitCollection
+            )
         }
     
         private func image(fromBase64 value: String?) -> UIImage? {
@@ -101,27 +136,6 @@ class ExpenseTableViewCell: UITableViewCell {
                 return nil
             }
             return UIImage(data: data)
-        }
-    
-        private func iconName(for category: String) -> String {
-            switch category.trimmingCharacters(in: .whitespacesAndNewlines).lowercased() {
-            case "food":
-                return "fork.knife"
-            case "transport":
-                return "bus.fill"
-            case "shopping":
-                return "cart.fill"
-            case "bills", "utilities":
-                return "doc.text.fill"
-            case "entertainment":
-                return "film.fill"
-            case "health":
-                return "heart.fill"
-            case "general", "other":
-                return "tag.fill"
-            default:
-                return "questionmark.circle.fill"
-            }
         }
 
 }

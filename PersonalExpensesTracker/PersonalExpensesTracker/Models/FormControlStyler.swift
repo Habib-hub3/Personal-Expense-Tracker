@@ -5,6 +5,7 @@
 
 import UIKit
 
+@MainActor
 enum FormControlStyler {
     static let controlHeight: CGFloat = 44
     static let horizontalPadding: CGFloat = 20
@@ -57,6 +58,7 @@ enum FormControlStyler {
         button.configuration = configuration
         button.tintColor = color
         button.layer.cornerRadius = 8
+        button.layer.borderWidth = 0
         button.clipsToBounds = true
         button.titleLabel?.adjustsFontSizeToFitWidth = true
         button.titleLabel?.minimumScaleFactor = 0.75
@@ -80,7 +82,7 @@ enum FormControlStyler {
         button.titleLabel?.minimumScaleFactor = 0.75
     }
     
-    static func constrainButton(_ button: UIButton, in contentView: UIView, maximumWidth: CGFloat = maximumContentWidth) {
+    static func constrainButton(_ button: UIButton, in contentView: UIView, maximumWidth: CGFloat = 680) {
         button.translatesAutoresizingMaskIntoConstraints = false
         NSLayoutConstraint.deactivate(contentView.constraints.filter { constraint in
             constraint.firstItem === button || constraint.secondItem === button

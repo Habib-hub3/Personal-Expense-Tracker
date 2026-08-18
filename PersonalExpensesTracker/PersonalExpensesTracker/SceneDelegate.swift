@@ -33,7 +33,7 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
         let window = UIWindow(windowScene: windowScene)
         window.rootViewController = rootViewController
-        window.overrideUserInterfaceStyle = isLoggedIn ? AppearanceManager.savedStyle : .light
+        window.overrideUserInterfaceStyle = AppearanceManager.savedStyle
         self.window = window
         window.makeKeyAndVisible()
         

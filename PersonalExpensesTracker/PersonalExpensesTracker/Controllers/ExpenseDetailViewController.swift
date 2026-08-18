@@ -16,6 +16,8 @@ class ExpenseDetailViewController: UIViewController {
     private let categoryLabel = UILabel()
     private let dateLabel = UILabel()
     private let notesLabel = UILabel()
+    private var isShowingCategoryFallback = false
+    private var receiptImageHeightConstraint: NSLayoutConstraint?
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -23,6 +25,10 @@ class ExpenseDetailViewController: UIViewController {
         view.backgroundColor = .systemBackground
         setupLayout()
         configureContent()
+        registerForTraitChanges(UITraitCollection.systemTraitsAffectingColorAppearance) {
+            (self: Self, _: UITraitCollection) in
+            self.refreshCategoryFallbackImageIfNeeded()
+        }
     }
     
     private func setupLayout() {
@@ -62,6 +68,11 @@ class ExpenseDetailViewController: UIViewController {
         contentStackView.addArrangedSubview(dateLabel)
         contentStackView.addArrangedSubview(notesLabel)
         
+        let imageHeightConstraint = receiptImageView.heightAnchor.constraint(equalToConstant: preferredImageHeight(for: view.bounds.width))
+        let stackWidthConstraint = contentStackView.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor)
+        stackWidthConstraint.priority = .defaultHigh
+        receiptImageHeightConstraint = imageHeightConstraint
+        
         NSLayoutConstraint.activate([
             scrollView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor),
             scrollView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
@@ -72,10 +83,23 @@ class ExpenseDetailViewController: UIViewController {
             contentStackView.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor),
             contentStackView.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor),
             contentStackView.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor),
-            contentStackView.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor),
+            contentStackView.centerXAnchor.constraint(equalTo: scrollView.frameLayoutGuide.centerXAnchor),
+            stackWidthConstraint,
+            contentStackView.widthAnchor.constraint(lessThanOrEqualToConstant: 760),
             
-            receiptImageView.heightAnchor.constraint(equalToConstant: 260)
+            imageHeightConstraint
         ])
+    }
+    
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        receiptImageHeightConstraint?.constant = preferredImageHeight(for: view.bounds.width)
+    }
+    
+    private func preferredImageHeight(for width: CGFloat) -> CGFloat {
+        let horizontalMargins: CGFloat = 40
+        let availableWidth = min(width - horizontalMargins, 760 - horizontalMargins)
+        return min(max(availableWidth * 9 / 16, 180), 360)
     }
     
     private func configureContent() {
@@ -90,16 +114,23 @@ class ExpenseDetailViewController: UIViewController {
     
     private func setReceiptImage(for expense: Expense) {
         if let image = image(fromBase64: expense.receiptImageBase64) {
+            isShowingCategoryFallback = false
             receiptImageView.image = image
             return
         }
         
         guard let urlString = expense.receiptImageURL,
               let url = URL(string: urlString) else {
-            receiptImageView.image = UIImage(systemName: "photo")
+            isShowingCategoryFallback = true
+            receiptImageView.image = CategoryImageProvider.image(
+                for: expense.category,
+                size: CGSize(width: 640, height: 360),
+                traitCollection: traitCollection
+            )
             return
         }
         
+        isShowingCategoryFallback = false
         receiptImageView.image = UIImage(systemName: "photo")
         URLSession.shared.dataTask(with: url) { [weak self] data, _, _ in
             guard let data = data, let image = UIImage(data: data) else { return }
@@ -107,6 +138,16 @@ class ExpenseDetailViewController: UIViewController {
                 self?.receiptImageView.image = image
             }
         }.resume()
+    }
+    
+    private func refreshCategoryFallbackImageIfNeeded() {
+        guard isShowingCategoryFallback,
+              let category = expense?.category else { return }
+        receiptImageView.image = CategoryImageProvider.image(
+            for: category,
+            size: CGSize(width: 640, height: 360),
+            traitCollection: traitCollection
+        )
     }
     
     private func image(fromBase64 value: String?) -> UIImage? {

@@ -5,9 +5,11 @@
 
 import UIKit
 
+@MainActor
 enum FormTextFieldStyler {
     static let fieldHeight: CGFloat = 44
     static let rowHeight: CGFloat = 64
+    private static let maximumContentWidth: CGFloat = 680
     
     static func apply(to fields: [UITextField?]) {
         fields.compactMap { $0 }.forEach(apply(to:))
@@ -48,9 +50,18 @@ enum FormTextFieldStyler {
             constraint.firstAttribute == .height || constraint.secondAttribute == .height
         })
         
+        let availableWidthConstraint = textField.widthAnchor.constraint(
+            equalTo: contentView.widthAnchor,
+            constant: -(horizontalPadding * 2)
+        )
+        availableWidthConstraint.priority = .defaultHigh
+        
         NSLayoutConstraint.activate([
-            textField.leadingAnchor.constraint(equalTo: contentView.leadingAnchor, constant: horizontalPadding),
-            textField.trailingAnchor.constraint(equalTo: contentView.trailingAnchor, constant: -horizontalPadding),
+            textField.centerXAnchor.constraint(equalTo: contentView.centerXAnchor),
+            textField.leadingAnchor.constraint(greaterThanOrEqualTo: contentView.leadingAnchor, constant: horizontalPadding),
+            textField.trailingAnchor.constraint(lessThanOrEqualTo: contentView.trailingAnchor, constant: -horizontalPadding),
+            availableWidthConstraint,
+            textField.widthAnchor.constraint(lessThanOrEqualToConstant: maximumContentWidth),
             textField.centerYAnchor.constraint(equalTo: contentView.centerYAnchor),
             textField.heightAnchor.constraint(equalToConstant: fieldHeight)
         ])
