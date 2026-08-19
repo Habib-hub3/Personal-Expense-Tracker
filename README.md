@@ -35,3 +35,11 @@ Firebase Authentication provides secure account registration and login, while Cl
 * UserDefaults
 
 Overall, this project demonstrates the development of a complete native iOS application—from responsive interface design and secure authentication to cloud-based data storage, receipt image handling, notifications, and personalized user settings. It combines practical financial tools with a simple experience that makes managing daily expenses easier.
+
+
+## Links 
+* Figma Link
+[https://www.figma.com/design/3X55w858WGzzFIz4nOS230/Personal-Expenses-Tracker?node-id=1-445&t=aBkUM8ReQ089D6dZ-1](https://www.figma.com/design/3X55w858WGzzFIz4nOS230/Personal-Expenses-Tracker?node-id=1-445&t=aBkUM8ReQ089D6dZ-1)
+
+* Presentation Link
+[https://polytechnicbhmy.sharepoint.com/:f:/g/personal/202200123_student_polytechnic_bh/IgBGqAr7fQAjR6T7f5EYw0yQAULG23v32RSJPbI2Ntfwh3c?e=OVRApA](https://polytechnicbh-my.sharepoint.com/:f:/g/personal/202200123_student_polytechnic_bh/IgBGqAr7fQAjR6T7f5EYw0yQAULG23v32RSJPbI2Ntfwh3c?e=OVRApA)
