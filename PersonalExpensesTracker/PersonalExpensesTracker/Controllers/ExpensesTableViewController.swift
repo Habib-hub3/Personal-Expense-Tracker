@@ -11,10 +11,12 @@ import FirebaseFirestore
 
 class ExpensesTableViewController: UITableViewController, UISearchResultsUpdating {
     
-    // MARK: - IBOutlets
+    // MARK: - Outlets
+    
     @IBOutlet weak var totalExpensesLabel: UILabel!
     
-    // MARK: - Properties
+    // MARK: - State
+    
     private var expenses: [Expense] = []
     private var displayedExpenses: [Expense] = []
     private var selectedCategoryFilter: String?
@@ -25,6 +27,8 @@ class ExpensesTableViewController: UITableViewController, UISearchResultsUpdatin
     private var sharedExpenseDocuments: [String: Expense] = [:]
     private var legacyExpenseDocuments: [String: Expense] = [:]
 
+    // MARK: - Lifecycle
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         navigationItem.title = "Expenses"
@@ -46,7 +50,8 @@ class ExpensesTableViewController: UITableViewController, UISearchResultsUpdatin
         NotificationCenter.default.removeObserver(self)
     }
     
-    // MARK: - Firebase Live Fetching
+    // MARK: - Expense Listening
+    
     private func fetchExpenses() {
         listenToSharedExpenses()
         listenToLegacyExpenses()
@@ -98,6 +103,8 @@ class ExpensesTableViewController: UITableViewController, UISearchResultsUpdatin
         }
     }
     
+    // MARK: - Filtering
+    
     private func updateTotalHeader() {
         let total = displayedExpenses.reduce(0) { $0 + $1.amount }
         let formattedTotal = CurrencyConverter.formattedAmount(fromUSD: total)
@@ -113,6 +120,8 @@ class ExpensesTableViewController: UITableViewController, UISearchResultsUpdatin
     private var hasActiveFilters: Bool {
         selectedCategoryFilter != nil || selectedMonthFilter != nil || !(searchController.searchBar.text?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
     }
+    
+    // MARK: - Search and Filter UI
     
     private func configureSearchController() {
         searchController.searchResultsUpdater = self
@@ -201,6 +210,8 @@ class ExpensesTableViewController: UITableViewController, UISearchResultsUpdatin
         }
     }
     
+    // MARK: - Settings Sync
+    
     private func observeSharedSettingsChanges() {
         NotificationCenter.default.addObserver(
             self,
@@ -214,7 +225,7 @@ class ExpensesTableViewController: UITableViewController, UISearchResultsUpdatin
         applyFilters()
     }
     
-    // MARK: - Table View Data Source (Dynamic Cells)
+    // MARK: - Table View Data Source
     
     override func numberOfSections(in tableView: UITableView) -> Int {
         return 1
@@ -243,7 +254,7 @@ class ExpensesTableViewController: UITableViewController, UISearchResultsUpdatin
         }
     }
     
-    // MARK: - Swipe to Delete
+    // MARK: - Table View Editing
     
     override func tableView(_ tableView: UITableView, canEditRowAt indexPath: IndexPath) -> Bool {
             return true
@@ -262,6 +273,8 @@ class ExpensesTableViewController: UITableViewController, UISearchResultsUpdatin
             }
         }
 
+        // MARK: - Navigation
+    
         override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
             tableView.deselectRow(at: indexPath, animated: true)
             let detailViewController = ExpenseDetailViewController()
@@ -292,6 +305,8 @@ class ExpensesTableViewController: UITableViewController, UISearchResultsUpdatin
             return nil
         }
     
+        // MARK: - Helpers
+    
         private func enclosingCell(for view: UIView) -> UITableViewCell? {
             var currentView: UIView? = view
             while let view = currentView {
@@ -310,6 +325,7 @@ class ExpensesTableViewController: UITableViewController, UISearchResultsUpdatin
         }
     
     // MARK: - Layout
+    
     private func configureTableLayout() {
         tableView.backgroundColor = .systemBackground
         tableView.separatorColor = .separator
@@ -322,12 +338,18 @@ class ExpensesTableViewController: UITableViewController, UISearchResultsUpdatin
 }
 
 private final class ExpenseFilterOptionsViewController: UITableViewController {
+    // MARK: - Callbacks
+    
     var onSelectionChanged: ((String?, Date?) -> Void)?
+    
+    // MARK: - State
     
     private let categories: [String]
     private let months: [Date]
     private var selectedCategory: String?
     private var selectedMonth: Date?
+    
+    // MARK: - Initialization
     
     init(categories: [String], months: [Date], selectedCategory: String?, selectedMonth: Date?) {
         self.categories = categories
@@ -341,6 +363,8 @@ private final class ExpenseFilterOptionsViewController: UITableViewController {
     required init?(coder: NSCoder) {
         return nil
     }
+    
+    // MARK: - Lifecycle
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -359,6 +383,8 @@ private final class ExpenseFilterOptionsViewController: UITableViewController {
             action: #selector(clearTapped)
         )
     }
+    
+    // MARK: - Table View Data Source
     
     override func numberOfSections(in tableView: UITableView) -> Int {
         return 2
@@ -415,6 +441,8 @@ private final class ExpenseFilterOptionsViewController: UITableViewController {
         return cell
     }
     
+    // MARK: - Table View Delegate
+    
     override func tableView(_ tableView: UITableView, didSelectRowAt indexPath: IndexPath) {
         tableView.deselectRow(at: indexPath, animated: true)
         
@@ -431,6 +459,8 @@ private final class ExpenseFilterOptionsViewController: UITableViewController {
         tableView.reloadSections(IndexSet(integer: indexPath.section), with: .automatic)
     }
     
+    // MARK: - Actions
+    
     @objc private func doneTapped() {
         dismiss(animated: true)
     }
@@ -441,6 +471,8 @@ private final class ExpenseFilterOptionsViewController: UITableViewController {
         onSelectionChanged?(nil, nil)
         tableView.reloadData()
     }
+    
+    // MARK: - Helpers
     
     private func monthMatchesSelection(_ month: Date?) -> Bool {
         switch (month, selectedMonth) {

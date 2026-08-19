@@ -11,7 +11,7 @@ import FirebaseFirestore
 
 class ExpensesFormTableViewController: UITableViewController, UITextFieldDelegate, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
 
-    // MARK: - IBOutlets
+    // MARK: - Outlets
         @IBOutlet weak var titleTextField: UITextField!
         @IBOutlet weak var amountTextField: UITextField!
         @IBOutlet weak var notesTextField: UITextField!
@@ -20,7 +20,7 @@ class ExpensesFormTableViewController: UITableViewController, UITextFieldDelegat
         @IBOutlet weak var receiptImageView: UIImageView!
         @IBOutlet weak var saveButton: UIBarButtonItem!
 
-        // MARK: - Properties
+        // MARK: - State
         /// If `expenseToEdit` is provided, the screen operates in EDIT mode; otherwise, it operates in ADD mode.
         var expenseToEdit: Expense?
 
@@ -30,6 +30,8 @@ class ExpensesFormTableViewController: UITableViewController, UITextFieldDelegat
         private var selectedReceiptImage: UIImage?
         private var receiptImageBase64: String?
 
+        // MARK: - Lifecycle
+    
         override func viewDidLoad() {
             super.viewDidLoad()
             setupUI()
@@ -120,7 +122,7 @@ class ExpensesFormTableViewController: UITableViewController, UITextFieldDelegat
             returnToExpensesScene()
         }
 
-        // MARK: - IBActions
+        // MARK: - Actions
         @IBAction func saveButtonTapped(_ sender: UIBarButtonItem) {
             guard let titleText = titleTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines), !titleText.isEmpty,
                   let amountText = amountTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -216,6 +218,8 @@ class ExpensesFormTableViewController: UITableViewController, UITextFieldDelegat
             }
         }
     
+        // MARK: - Receipt Image
+    
         private func setupReceiptImageView() {
             updateReceiptPlaceholderIfNeeded()
             receiptImageView.tintColor = nil
@@ -292,6 +296,8 @@ class ExpensesFormTableViewController: UITableViewController, UITextFieldDelegat
             tableView.visibleCells.forEach { FormControlStyler.applyCellStyle(to: $0) }
         }
     
+        // MARK: - Image Picker
+    
         @objc private func receiptImageTapped() {
             let alert = UIAlertController(title: "Receipt Photo", message: nil, preferredStyle: .actionSheet)
             
@@ -306,6 +312,7 @@ class ExpensesFormTableViewController: UITableViewController, UITextFieldDelegat
                     self?.presentImagePicker(sourceType: .photoLibrary)
                 })
             }
+            
             alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
             alert.popoverPresentationController?.sourceView = receiptImageView
             alert.popoverPresentationController?.sourceRect = receiptImageView.bounds
@@ -337,6 +344,8 @@ class ExpensesFormTableViewController: UITableViewController, UITextFieldDelegat
         func imagePickerControllerDidCancel(_ picker: UIImagePickerController) {
             picker.dismiss(animated: true)
         }
+    
+        // MARK: - Receipt Persistence
     
         private func prepareReceiptFields(
             in expenseData: [String: Any],
@@ -407,6 +416,8 @@ class ExpensesFormTableViewController: UITableViewController, UITextFieldDelegat
             return UIImage(data: data)
         }
 
+        // MARK: - Text Field Validation
+    
         func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
             guard textField === amountTextField else { return true }
             return isValidAmountReplacement(in: textField, range: range, replacementString: string)

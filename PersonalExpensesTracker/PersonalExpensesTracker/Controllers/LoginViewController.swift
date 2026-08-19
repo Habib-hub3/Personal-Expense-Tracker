@@ -11,14 +11,19 @@ import FirebaseFirestore
 
 class LoginViewController: UIViewController {
     
-    //MARK: - IBOutlets
+    // MARK: - Outlets
+    
     @IBOutlet weak var emailTextField: UITextField!
     @IBOutlet weak var passwordTextField: UITextField!
     @IBOutlet weak var logInButton: UIButton!
     @IBOutlet weak var signUpButton: UIButton!
     
+    // MARK: - State
+    
     private var shouldPerformLoginSegue = false
     private weak var logoImageView: UIImageView?
+    
+    // MARK: - Lifecycle
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -28,6 +33,8 @@ class LoginViewController: UIViewController {
             self.refreshAdaptiveAppearance()
         }
     }
+    
+    // MARK: - UI Setup
     
     private func setupUI() {
         passwordTextField.isSecureTextEntry = true
@@ -39,6 +46,7 @@ class LoginViewController: UIViewController {
         setupResponsiveLayout()
     }
     
+    // Rebuilds storyboard constraints so the login form scales across compact and regular screens.
     private func setupResponsiveLayout() {
         guard let formView = emailTextField.superview,
               let logoImageView = view.subviews.compactMap({ $0 as? UIImageView }).first else { return }
@@ -146,7 +154,8 @@ class LoginViewController: UIViewController {
         logoImageView.clipsToBounds = true
     }
     
-    //MARK: - IBActions
+    // MARK: - Actions
+    
     @IBAction func logInButtonTapped(_ sender: UIButton) {
         guard let email = emailTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines),
               !email.isEmpty,
@@ -170,8 +179,10 @@ class LoginViewController: UIViewController {
     }
     
     @IBAction func signUpButtonTapped(_ sender: UIButton) {
-        //Navigate to RegisterViewController is handled via Storyboard Segue
+        // Navigation to RegisterViewController is handled by the storyboard segue.
     }
+    
+    // MARK: - Navigation
     
     override func shouldPerformSegue(withIdentifier identifier: String, sender: Any?) -> Bool {
         if identifier == "loginToMainTabBar" {
@@ -197,6 +208,8 @@ class LoginViewController: UIViewController {
         SharedSettingsStore.startListeningForCurrentUser()
     }
     
+    // MARK: - Settings Sync
+    
     private func loadSharedSettingsThenNavigate(email: String) {
         Firestore.firestore()
             .collection("accountSettings")
@@ -216,6 +229,8 @@ class LoginViewController: UIViewController {
     private func applySharedSettings(_ data: [String: Any]) {
         SharedSettingsStore.apply(data)
     }
+    
+    // MARK: - Helpers
     
     private func accountSettingsDocumentID(for email: String) -> String {
         let normalizedEmail = email.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()

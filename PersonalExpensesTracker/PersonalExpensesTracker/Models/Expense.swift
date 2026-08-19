@@ -8,7 +8,9 @@
 import Foundation
 import FirebaseFirestore
 
-struct Expense{
+struct Expense {
+    // MARK: - Properties
+    
     let id: String
     let title: String
     let amount: Double
@@ -22,7 +24,8 @@ struct Expense{
         !(receiptImageURL?.isEmpty ?? true) || !(receiptImageBase64?.isEmpty ?? true)
     }
     
-    //Initializer for local creation
+    // MARK: - Initialization
+    
     init(
         id: String = UUID().uuidString,
         title: String,
@@ -44,7 +47,9 @@ struct Expense{
         self.receiptImageURL = receiptImageURL
     }
     
-    // Convert Firestore Document into Swift Expense model
+    // MARK: - Firestore Mapping
+    
+    // Handles older documents where amount may have been saved as a number or a string.
     init?(id: String, dictionary: [String: Any])
     {
         guard let title = dictionary["title"] as? String,
@@ -87,6 +92,8 @@ struct Expense{
         
         return data
     }
+    
+    // MARK: - Parsing Helpers
     
     private static func amountValue(from value: Any?) -> Double {
         if let amount = value as? Double {

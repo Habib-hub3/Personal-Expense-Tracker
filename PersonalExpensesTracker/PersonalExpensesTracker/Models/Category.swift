@@ -8,6 +8,8 @@
 import Foundation
 
 enum ExpenseCategory: String, CaseIterable {
+    // MARK: - Cases
+    
     case food = "Food"
     case transport = "Transport"
     case shopping = "Shopping"
@@ -17,6 +19,8 @@ enum ExpenseCategory: String, CaseIterable {
     case utilities = "Utilities"
     case health = "Health"
     case other = "Other"
+    
+    // MARK: - Display Helpers
     
     static var names: [String] {
         allCases.map(\.rawValue)

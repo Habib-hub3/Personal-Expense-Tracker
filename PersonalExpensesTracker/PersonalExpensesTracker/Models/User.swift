@@ -8,6 +8,8 @@
 import Foundation
 
 struct User {
+    // MARK: - Properties
+    
     let uid: String
     let email: String
     let username: String
@@ -15,6 +17,8 @@ struct User {
     let lastName: String
     let profileImageBase64: String?
     let preferredCurrency: String
+    
+    // MARK: - Initialization
     
     init(
         uid: String,
@@ -34,13 +38,15 @@ struct User {
         self.preferredCurrency = preferredCurrency
     }
     
+    // MARK: - Display Values
+    
     var fullName: String {
         [firstName, lastName]
             .filter { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
             .joined(separator: " ")
     }
     
-    // Convert Firestore Dictionary into User model
+    // Accepts several legacy field names so older Firestore profiles still load correctly.
     init?(uid: String, dictionary: [String: Any])
     {
         self.uid = uid
@@ -53,6 +59,8 @@ struct User {
         self.profileImageBase64 = Self.stringValue(for: ["profileImageBase64", "profileImage", "photoBase64"], in: dictionary)
         self.preferredCurrency = Self.stringValue(for: ["preferredCurrency", "currency"], in: dictionary, defaultValue: "USD")
     }
+    
+    // MARK: - Firestore Mapping
     
     var dictionary: [String: Any] {
         var data: [String: Any] = [
@@ -69,6 +77,8 @@ struct User {
         
         return data
     }
+    
+    // MARK: - Parsing Helpers
     
     private static func stringValue(for keys: [String], in dictionary: [String: Any], defaultValue: String = "") -> String {
         for key in keys {

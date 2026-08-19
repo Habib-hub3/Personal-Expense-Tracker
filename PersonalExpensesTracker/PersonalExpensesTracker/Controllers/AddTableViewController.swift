@@ -11,7 +11,7 @@ import FirebaseFirestore
 
 class AddTableViewController: UITableViewController, UIImagePickerControllerDelegate, UINavigationControllerDelegate, UITextFieldDelegate {
 
-    // MARK: - IBOutlets
+    // MARK: - Outlets
         @IBOutlet weak var titleTextField: UITextField!
         @IBOutlet weak var amountTextField: UITextField!
         @IBOutlet weak var notesTextField: UITextField!
@@ -20,12 +20,14 @@ class AddTableViewController: UITableViewController, UIImagePickerControllerDele
         @IBOutlet weak var receiptImageView: UIImageView!
         @IBOutlet weak var saveButton: UIBarButtonItem!
 
-        // MARK: - Properties
+        // MARK: - State
         private let categories = ExpenseCategory.names
         private var selectedCategory: String = "General"
         private var selectedReceiptImage: UIImage?
         private var receiptImageBase64: String?
 
+        // MARK: - Lifecycle
+    
         override func viewDidLoad() {
             super.viewDidLoad()
             setupUI()
@@ -41,6 +43,8 @@ class AddTableViewController: UITableViewController, UIImagePickerControllerDele
             NotificationCenter.default.removeObserver(self)
         }
 
+        // MARK: - UI Setup
+    
         private func setupUI() {
             title = "Add(+)"
             
@@ -98,7 +102,7 @@ class AddTableViewController: UITableViewController, UIImagePickerControllerDele
             navigationItem.leftBarButtonItem = nil
         }
 
-        // MARK: - IBActions
+        // MARK: - Actions
         @IBAction func saveButtonTapped(_ sender: UIBarButtonItem) {
             guard let titleText = titleTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines), !titleText.isEmpty,
                   let amountText = amountTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -154,6 +158,8 @@ class AddTableViewController: UITableViewController, UIImagePickerControllerDele
             }
         }
 
+        // MARK: - Receipt Persistence
+    
         private func uploadReceiptIfNeeded(completion: @escaping (Result<String?, Error>) -> Void) {
             guard let selectedReceiptImage = selectedReceiptImage else {
                 completion(.success(nil))
@@ -243,6 +249,8 @@ class AddTableViewController: UITableViewController, UIImagePickerControllerDele
             updateSaveButtonState()
         }
     
+        // MARK: - Form Validation
+    
         private func setupFormValidation() {
             amountTextField.keyboardType = .decimalPad
             amountTextField.delegate = self
@@ -267,6 +275,8 @@ class AddTableViewController: UITableViewController, UIImagePickerControllerDele
             let amount = Double(amountText) ?? 0
             return !titleText.isEmpty && amount > 0 && !selectedCategory.isEmpty
         }
+    
+        // MARK: - Settings Sync
     
         private func observeSharedSettingsChanges() {
             NotificationCenter.default.addObserver(
@@ -293,6 +303,8 @@ class AddTableViewController: UITableViewController, UIImagePickerControllerDele
             configureCategoryMenu()
             updateReceiptPlaceholderIfNeeded()
         }
+    
+        // MARK: - Receipt Image
     
         private func setupReceiptImageView() {
             updateReceiptPlaceholderIfNeeded()
@@ -339,6 +351,8 @@ class AddTableViewController: UITableViewController, UIImagePickerControllerDele
             tableView.visibleCells.forEach { FormControlStyler.applyCellStyle(to: $0) }
         }
     
+        // MARK: - Image Picker
+    
         @objc private func receiptImageTapped() {
             let alert = UIAlertController(title: "Receipt Photo", message: nil, preferredStyle: .actionSheet)
             
@@ -353,6 +367,7 @@ class AddTableViewController: UITableViewController, UIImagePickerControllerDele
                     self?.presentImagePicker(sourceType: .photoLibrary)
                 })
             }
+            
             alert.addAction(UIAlertAction(title: "Cancel", style: .cancel))
             alert.popoverPresentationController?.sourceView = receiptImageView
             alert.popoverPresentationController?.sourceRect = receiptImageView.bounds
@@ -385,6 +400,8 @@ class AddTableViewController: UITableViewController, UIImagePickerControllerDele
             picker.dismiss(animated: true)
         }
 
+        // MARK: - Text Field Validation
+    
         func textField(_ textField: UITextField, shouldChangeCharactersIn range: NSRange, replacementString string: String) -> Bool {
             guard textField === amountTextField else { return true }
             return isValidAmountReplacement(in: textField, range: range, replacementString: string)

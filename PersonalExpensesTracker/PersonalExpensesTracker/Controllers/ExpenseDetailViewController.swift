@@ -6,7 +6,11 @@
 import UIKit
 
 class ExpenseDetailViewController: UIViewController {
+    // MARK: - Input
+    
     var expense: Expense?
+    
+    // MARK: - Views
     
     private let scrollView = UIScrollView()
     private let contentStackView = UIStackView()
@@ -19,6 +23,8 @@ class ExpenseDetailViewController: UIViewController {
     private var isShowingCategoryFallback = false
     private var receiptImageHeightConstraint: NSLayoutConstraint?
     
+    // MARK: - Lifecycle
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         title = "Expense Detail"
@@ -30,6 +36,8 @@ class ExpenseDetailViewController: UIViewController {
             self.refreshCategoryFallbackImageIfNeeded()
         }
     }
+    
+    // MARK: - Layout
     
     private func setupLayout() {
         scrollView.translatesAutoresizingMaskIntoConstraints = false
@@ -96,6 +104,8 @@ class ExpenseDetailViewController: UIViewController {
         receiptImageHeightConstraint?.constant = preferredImageHeight(for: view.bounds.width)
     }
     
+    // MARK: - Content
+    
     private func preferredImageHeight(for width: CGFloat) -> CGFloat {
         let horizontalMargins: CGFloat = 40
         let availableWidth = min(width - horizontalMargins, 760 - horizontalMargins)
@@ -111,6 +121,8 @@ class ExpenseDetailViewController: UIViewController {
         notesLabel.text = "Notes: \((expense.notes?.isEmpty == false) ? expense.notes! : "No notes")"
         setReceiptImage(for: expense)
     }
+    
+    // MARK: - Receipt Image
     
     private func setReceiptImage(for expense: Expense) {
         if let image = image(fromBase64: expense.receiptImageBase64) {
@@ -149,6 +161,8 @@ class ExpenseDetailViewController: UIViewController {
             traitCollection: traitCollection
         )
     }
+    
+    // MARK: - Helpers
     
     private func image(fromBase64 value: String?) -> UIImage? {
         guard let value,

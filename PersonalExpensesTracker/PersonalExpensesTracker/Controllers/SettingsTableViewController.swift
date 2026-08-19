@@ -12,7 +12,7 @@ import UserNotifications
 
 class SettingsTableViewController: UITableViewController, UIImagePickerControllerDelegate, UINavigationControllerDelegate {
     
-    // MARK: - IBOutleets
+    // MARK: - Outlets
     @IBOutlet weak var profileImageView: UIImageView!
     @IBOutlet weak var userNameLabel: UILabel!
     @IBOutlet weak var userEmailLabel: UILabel!
@@ -27,11 +27,13 @@ class SettingsTableViewController: UITableViewController, UIImagePickerControlle
     @IBOutlet weak var clearDataButton: UIButton!
     @IBOutlet weak var logoutButton: UIButton!
     
-    // MARK: - Properties
+    // MARK: - State
     private let currencies = ["USD ($)", "EUR (€)", "BHD (BD)", "GBP (£)"]
     private let categories = ExpenseCategory.names
     private var currentUserProfile: User?
     private var sharedSettingsListener: ListenerRegistration?
+    
+    // MARK: - Lifecycle
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -261,7 +263,7 @@ class SettingsTableViewController: UITableViewController, UIImagePickerControlle
         FormControlStyler.styleMenuButton(defaultCategoryButton)
     }
     
-    // MARK: - Load User Data & Prefrences
+    // MARK: - User Data and Preferences
     private func loadUserData() {
         guard let authUser = Auth.auth().currentUser else {
             userNameLabel.text = "User Name"
@@ -431,7 +433,7 @@ class SettingsTableViewController: UITableViewController, UIImagePickerControlle
             indexPath.section == 0 && indexPath.row == 0
         }
 
-        // MARK: - Helper Methods
+        // MARK: - Account Details
 
         private func showAccountDetails() {
             guard Auth.auth().currentUser != nil else {
@@ -480,6 +482,8 @@ class SettingsTableViewController: UITableViewController, UIImagePickerControlle
             present(alert, animated: true)
         }
         
+        // MARK: - Profile Data
+    
         private func applyProfile(_ profile: User) {
             if !profile.fullName.isEmpty {
                 userNameLabel.text = profile.fullName
@@ -558,6 +562,8 @@ class SettingsTableViewController: UITableViewController, UIImagePickerControlle
             return placeholderNames.contains(visibleName) ? nil : visibleName
         }
         
+        // MARK: - Profile Image
+    
         private func showProfileImageOptions() {
             let alert = UIAlertController(title: "Profile Photo", message: nil, preferredStyle: .actionSheet)
             
@@ -631,6 +637,8 @@ class SettingsTableViewController: UITableViewController, UIImagePickerControlle
             }
         }
         
+        // MARK: - Shared Settings Sync
+    
         private func saveSharedSettings(_ values: [String: Any]) {
             guard let authUser = Auth.auth().currentUser else { return }
             saveSharedProfileValues(values, uid: authUser.uid, email: authUser.email) { [weak self] error in
@@ -858,6 +866,8 @@ class SettingsTableViewController: UITableViewController, UIImagePickerControlle
             return Calendar.current.date(bySettingHour: hour, minute: minute, second: 0, of: Date())
         }
         
+        // MARK: - Shared Settings Helpers
+    
         private func applyDarkMode(_ isDarkMode: Bool) {
             AppearanceManager.applyDarkMode(isDarkMode)
         }
@@ -975,6 +985,8 @@ class SettingsTableViewController: UITableViewController, UIImagePickerControlle
             return UIImage(data: data)
         }
         
+        // MARK: - Password
+    
         private func showChangePasswordAlert() {
             let alert = UIAlertController(title: "Change Password", message: nil, preferredStyle: .alert)
             alert.addTextField { textField in
@@ -1046,6 +1058,8 @@ class SettingsTableViewController: UITableViewController, UIImagePickerControlle
             }
         }
 
+        // MARK: - Data Deletion
+    
         private func performDataDeletion() {
             guard let expensesCollection = ExpenseStore.currentExpensesCollection else { return }
             
@@ -1066,6 +1080,8 @@ class SettingsTableViewController: UITableViewController, UIImagePickerControlle
             }
         }
 
+        // MARK: - Notifications
+    
         private func requestNotificationPermission() {
             UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, _ in
                 DispatchQueue.main.async {
@@ -1096,6 +1112,8 @@ class SettingsTableViewController: UITableViewController, UIImagePickerControlle
             center.add(request)
         }
 
+        // MARK: - Navigation
+    
         private func redirectToLogin() {
             let storyboard = UIStoryboard(name: "PersonalExpensesTracker", bundle: nil)
             if let loginVC = storyboard.instantiateViewController(withIdentifier: "LoginViewController") as? LoginViewController {
@@ -1112,6 +1130,8 @@ class SettingsTableViewController: UITableViewController, UIImagePickerControlle
             }
         }
 
+        // MARK: - Alerts
+    
         private func showAlert(title: String, message: String) {
             let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
             alert.addAction(UIAlertAction(title: "OK", style: .default))

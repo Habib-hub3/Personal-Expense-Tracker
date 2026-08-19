@@ -11,14 +11,14 @@ import FirebaseFirestore
 
 class SummaryViewController: UIViewController {
     
-    // MARK: - IBOutlets
+    // MARK: - Outlets
     @IBOutlet weak var totalSpentLabel: UILabel!
     @IBOutlet weak var averageSpentLabel: UILabel?
     @IBOutlet weak var totalCountLabel: UILabel?
     @IBOutlet weak var overallButton: UIButton?
     @IBOutlet weak var monthlyButton: UIButton?
     
-    // MARK: - Properties
+    // MARK: - Summary Models
     private enum SummaryScope {
         case overall
         case currentMonth
@@ -49,9 +49,13 @@ class SummaryViewController: UIViewController {
     private var selectedScope: SummaryScope = .overall
     private var selectedCategory: String?
     private var totalSpent: Double = 0
+    // MARK: - State
+    
     private var categoryBreakdown: [String: Double] = [:]
     private var categorySummaries: [CategorySummary] = []
     private var summaryExpenses: [SummaryExpense] = []
+    
+    // MARK: - Lifecycle
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -75,6 +79,8 @@ class SummaryViewController: UIViewController {
     deinit {
         NotificationCenter.default.removeObserver(self)
     }
+    
+    // MARK: - UI Setup
     
     private func setupCategoryControls() {
         view.addSubview(categoryButton)
@@ -115,6 +121,8 @@ class SummaryViewController: UIViewController {
         selectedCategoryDetailsLabel.isHidden = true
     }
     
+    // MARK: - Settings Sync
+    
     private func observeSharedSettingsChanges() {
         NotificationCenter.default.addObserver(
             self,
@@ -127,6 +135,8 @@ class SummaryViewController: UIViewController {
     @objc private func sharedSettingsChanged() {
         fetchSummaryData()
     }
+    
+    // MARK: - Layout
     
     private func setupResponsiveLayout() {
         guard let summaryCard = totalSpentLabel.superview,
@@ -252,7 +262,7 @@ class SummaryViewController: UIViewController {
         fetchSummaryData()
     }
     
-    // MARK: - Fetch & Process Firestore Summary
+    // MARK: - Summary Loading
     
     private func fetchSummaryData() {
         var expenseDocuments: [String: [String: Any]] = [:]
@@ -292,6 +302,8 @@ class SummaryViewController: UIViewController {
         
         ExpenseStore.migrateLegacyExpensesIfNeeded()
     }
+    
+    // MARK: - Summary Processing
     
     private func applySummaryDocuments(_ documents: [[String: Any]]) {
         var totalSum: Double = 0
@@ -374,6 +386,8 @@ class SummaryViewController: UIViewController {
             return Calendar.current.isDate(expenseDate, equalTo: Date(), toGranularity: .month)
         }
     }
+    
+    // MARK: - Summary UI Updates
     
     private func updateScopeButtons() {
         applyScopeStyle(to: overallButton, isSelected: selectedScope == .overall)
@@ -482,6 +496,8 @@ class SummaryViewController: UIViewController {
         selectedCategoryDetailsLabel.setContentOffset(.zero, animated: false)
     }
     
+    // MARK: - Display Text
+    
     private func expenseDetailsText(for category: String) -> String {
         let matchingExpenses = summaryExpenses.filter { $0.category == category }
         guard !matchingExpenses.isEmpty else {
@@ -504,6 +520,8 @@ class SummaryViewController: UIViewController {
         
         return lines.isEmpty ? "No expenses saved yet." : lines.joined(separator: "\n")
     }
+    
+    // MARK: - Parsing Helpers
     
     private func normalizedCategory(_ category: String?) -> String {
         guard let category = category?.trimmingCharacters(in: .whitespacesAndNewlines), !category.isEmpty else {

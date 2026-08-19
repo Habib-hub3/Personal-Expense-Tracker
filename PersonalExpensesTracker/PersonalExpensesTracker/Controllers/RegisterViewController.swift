@@ -10,7 +10,8 @@ import FirebaseAuth
 
 class RegisterViewController: UIViewController {
     
-    // MARK: - IBOutlets
+    // MARK: - Outlets
+    
     @IBOutlet weak var usernameTextField: UITextField!
     @IBOutlet weak var firstNameTextField: UITextField!
     @IBOutlet weak var lastNameTextField: UITextField!
@@ -18,6 +19,8 @@ class RegisterViewController: UIViewController {
     @IBOutlet weak var passwordTextField: UITextField!
     @IBOutlet weak var confirmPasswordTextField: UITextField!
     @IBOutlet weak var doneButton: UIButton!
+    
+    // MARK: - Lifecycle
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -27,6 +30,8 @@ class RegisterViewController: UIViewController {
             self.refreshTextFieldAppearance()
         }
     }
+    
+    // MARK: - UI Setup
     
     private func setupUI() {
         passwordTextField.isSecureTextEntry = true
@@ -42,6 +47,7 @@ class RegisterViewController: UIViewController {
         setupResponsiveLayout()
     }
    
+    // Rebuilds the storyboard form into a two-column layout that still fits narrow devices.
     private func setupResponsiveLayout() {
         guard let formView = usernameTextField.superview else { return }
         let navigationBar = view.subviews.compactMap { $0 as? UINavigationBar }.first
@@ -160,7 +166,8 @@ class RegisterViewController: UIViewController {
         ])
     }
     
-    // MARK: - IBActions
+    // MARK: - Actions
+    
     @IBAction func doneButtonTapped(_ sender: UIButton) {
         guard let username = usernameTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines), !username.isEmpty,
               let firstName = firstNameTextField.text?.trimmingCharacters(in: .whitespacesAndNewlines), !firstName.isEmpty,
@@ -191,7 +198,8 @@ class RegisterViewController: UIViewController {
         returnToLoginPage()
     }
 
-    // MARK: - Helper Methods
+    // MARK: - Account Creation
+    
     private func createAccount(username: String, firstName: String, lastName: String, email: String, password: String) {
         Auth.auth().createUser(withEmail: email, password: password) { [weak self] authResult, error in
             if let error = error {
@@ -242,6 +250,8 @@ class RegisterViewController: UIViewController {
         }
     }
     
+    // MARK: - Error Messages
+    
     private func usernameReservationErrorTitle(for error: Error) -> String {
         if isMissingFirestoreDatabaseError(error) {
             return "Firestore Not Set Up"
@@ -289,6 +299,8 @@ class RegisterViewController: UIViewController {
         return message.contains("offline") || message.contains("network") || message.contains("internet")
     }
     
+    // MARK: - Navigation
+    
     private func showRegistrationSuccessAlert() {
         let alert = UIAlertController(
             title: "Account Created",
@@ -319,6 +331,8 @@ class RegisterViewController: UIViewController {
             }
         }
     }
+    
+    // MARK: - Alerts
     
     private func showAlert(title: String, message: String) {
         let alert = UIAlertController(title: title, message: message, preferredStyle: .alert)
