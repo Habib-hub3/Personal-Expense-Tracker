@@ -47,7 +47,7 @@ enum FormControlStyler {
         button.tintColor = .label
         button.layer.cornerRadius = 8
         button.layer.borderWidth = 1
-        button.layer.borderColor = UIColor.separator.cgColor
+        button.layer.borderColor = UIColor.separator.resolvedColor(with: button.traitCollection).cgColor
         button.clipsToBounds = true
         button.titleLabel?.adjustsFontSizeToFitWidth = true
         button.titleLabel?.minimumScaleFactor = 0.75
@@ -82,7 +82,7 @@ enum FormControlStyler {
         button.tintColor = .label
         button.layer.cornerRadius = 8
         button.layer.borderWidth = 1
-        button.layer.borderColor = UIColor.separator.cgColor
+        button.layer.borderColor = UIColor.separator.resolvedColor(with: button.traitCollection).cgColor
         button.clipsToBounds = true
         button.titleLabel?.adjustsFontSizeToFitWidth = true
         button.titleLabel?.minimumScaleFactor = 0.75
@@ -120,3 +120,4 @@ enum FormControlStyler {
         }
     }
 }
+

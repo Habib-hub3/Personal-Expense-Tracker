@@ -37,7 +37,11 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
 
         let window = UIWindow(windowScene: windowScene)
         window.rootViewController = rootViewController
-        window.overrideUserInterfaceStyle = AppearanceManager.savedStyle
+        if UserDefaults.standard.object(forKey: AppearanceManager.darkModeDefaultsKey) == nil {
+            window.overrideUserInterfaceStyle = .unspecified
+        } else {
+            window.overrideUserInterfaceStyle = AppearanceManager.savedStyle
+        }
         self.window = window
         window.makeKeyAndVisible()
         
@@ -72,3 +76,4 @@ class SceneDelegate: UIResponder, UIWindowSceneDelegate {
             .replacingOccurrences(of: "=", with: "")
     }
 }
+

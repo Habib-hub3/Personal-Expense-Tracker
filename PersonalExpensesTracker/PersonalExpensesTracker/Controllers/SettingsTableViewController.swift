@@ -1122,9 +1122,10 @@ class SettingsTableViewController: UITableViewController, UIImagePickerControlle
                 if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
                    let window = windowScene.windows.first {
                     window.rootViewController = loginVC
-                    AppearanceManager.applyLightMode()
+                    AppearanceManager.applySystemDefault()
                     window.makeKeyAndVisible()
                 } else {
+                    AppearanceManager.applySystemDefault()
                     present(loginVC, animated: true)
                 }
             }
@@ -1138,3 +1139,4 @@ class SettingsTableViewController: UITableViewController, UIImagePickerControlle
             present(alert, animated: true)
         }
 }
+

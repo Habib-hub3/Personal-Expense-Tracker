@@ -17,7 +17,11 @@ enum AppearanceManager {
     // MARK: - Applying Appearance
     
     static func applySavedAppearance() {
-        apply(style: savedStyle)
+        if UserDefaults.standard.object(forKey: darkModeDefaultsKey) == nil {
+            apply(style: .unspecified)
+        } else {
+            apply(style: savedStyle)
+        }
     }
     
     static func applyDarkMode(_ isDarkMode: Bool) {
@@ -27,6 +31,11 @@ enum AppearanceManager {
     
     static func applyLightMode() {
         apply(style: .light)
+    }
+    
+    static func applySystemDefault() {
+        UserDefaults.standard.removeObject(forKey: darkModeDefaultsKey)
+        apply(style: .unspecified)
     }
     
     // MARK: - Window Updates

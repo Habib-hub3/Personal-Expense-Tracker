@@ -150,7 +150,7 @@ class LoginViewController: UIViewController {
         logoImageView.backgroundColor = isDarkMode ? .secondarySystemBackground : .clear
         logoImageView.layer.cornerRadius = 24
         logoImageView.layer.borderWidth = isDarkMode ? 1 : 0
-        logoImageView.layer.borderColor = UIColor.separator.cgColor
+        logoImageView.layer.borderColor = UIColor.separator.resolvedColor(with: logoImageView.traitCollection).cgColor
         logoImageView.clipsToBounds = true
     }
     
@@ -195,7 +195,6 @@ class LoginViewController: UIViewController {
         if segue.identifier == "loginToMainTabBar",
            let tabBarVC = segue.destination as? UITabBarController {
             tabBarVC.selectedIndex = 0
-            tabBarVC.overrideUserInterfaceStyle = AppearanceManager.savedStyle
         }
     }
     
